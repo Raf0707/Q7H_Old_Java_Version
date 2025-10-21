@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawerQuranLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".ui.MainActivity">
+
+    <!-- ======== Основной контент экрана ======== -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
+            style="@style/Widget.MaterialComponents.AppBarLayout.PrimarySurface"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fitsSystemWindows="true">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:layout_gravity="end"
+                app:layout_scrollFlags="enterAlways|snap"
+                app:menu="@menu/main_menu"
+                app:title="">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/infoApp"
+                        style="@style/Widget.Material3.Button.IconButton.Filled"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginTop="1dp"
+                        android:layout_marginRight="5dp"
+                        app:icon="@drawable/info"
+                        app:iconSize="30dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/goToPage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginRight="5dp"
+                        app:icon="@drawable/go_to_page_svg"
+                        app:iconSize="30dp" />
+                </LinearLayout>
+
+            </com.google.android.material.appbar.MaterialToolbar>
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="70dp"
+            android:orientation="horizontal" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/quranDrawerInfo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fitsSystemWindows="true"
+            android:padding="16dp">
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/viewPager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="3dp"
+                android:layout_marginRight="3dp"
+                android:layout_marginTop="125dp"
+                android:layout_marginBottom="120dp" />
+
+            <TextView
+                android:id="@+id/pageNumberText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="18sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.593"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@id/viewPager"
+                app:layout_constraintVertical_bias="0.90" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/tajweedSwitch"
+                style="@style/Widget.Material3.CompoundButton.MaterialSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:enabled="true"
+                android:paddingHorizontal="8dp"
+                android:text="Таджвид"
+                android:textSize="18sp"
+                app:layout_constraintBottom_toTopOf="@+id/viewPager"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ======== BottomSheet: Аудио / Тафсир ======== -->
+        <FrameLayout
+            android:id="@+id/bottomSheetContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:animateLayoutChanges="false"
+            android:background="@android:color/white"
+            android:clipToPadding="false"
+            android:elevation="10dp"
+            app:behavior_fitToContents="true"
+            app:behavior_hideable="false"
+            app:behavior_expandedOffset="100dp"
+            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+
+        <!-- Внутренний контейнер для точной выравнивания -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/bottomSheetContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false">
+
+                <!-- Верхняя панель переключения + кнопка закрытия -->
+                <LinearLayout
+                    android:id="@+id/btns"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <RadioGroup
+                        android:id="@+id/buttonsRadioGroup"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        >
+
+                        <RadioButton
+                            android:id="@+id/slide_down"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/segment_btn_left"
+                            android:button="@android:color/transparent"
+                            android:checked="true"
+                            android:gravity="center"
+
+                            android:text="Аудио"
+                            android:textColor="@drawable/text_color_selector" />
+
+                        <RadioButton
+                            android:id="@+id/tafsir"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/segment_btn_right"
+                            android:button="@android:color/transparent"
+                            android:gravity="center"
+
+                            android:text="Тафсир"
+                            android:textColor="@drawable/text_color_selector" />
+                    </RadioGroup>
+
+                    <ImageView
+                        android:id="@+id/imOpenCloseTafsir"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="right|top"
+                        android:paddingRight="20dp"
+                        android:paddingLeft="20dp"
+                        android:paddingTop="10dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/open_svg" />
+                </LinearLayout>
+
+                <!-- ======= Контейнер АУДИО (виден по умолчанию) ======= -->
+                <FrameLayout
+                    android:id="@+id/playerFrame"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:clipToPadding="false"
+                    android:clipChildren="false"
+                    android:paddingBottom="32dp"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btns">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/full_player"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/album_cover_frame"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:layout_marginHorizontal="24dp"
+                            android:layout_marginTop="16dp"
+                            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                            app:cardCornerRadius="22dp"
+                            app:layout_constraintDimensionRatio="1:1"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:strokeWidth="0dp">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/full_sheet_cover"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="@string/dialog_album"
+                                android:scaleType="centerCrop"
+                                app:srcCompat="@drawable/ic_app" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/controls"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="50dp"
+                            app:layout_constraintBottom_toTopOf="@id/actionBar"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintHeight_min="180dp"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/album_cover_frame">
+
+                            <LinearLayout
+                                android:id="@+id/textLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="28dp"
+                                android:layout_marginBottom="8dp"
+                                android:gravity="center"
+                                android:minHeight="60dp"
+                                android:orientation="vertical"
+                                app:layout_constraintBottom_toTopOf="@id/slider"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent">
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/fullSuraName"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif"
+                                    android:gravity="center"
+                                    android:scrollbars="none"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textFontWeight="500"
+                                    android:textSize="22sp"
+                                    tools:text="Artifiction" />
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/fullSuraQari"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:fontFamily="sans-serif"
+                                    android:gravity="center"
+                                    android:scrollbars="none"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textFontWeight="500"
+                                    android:textSize="17sp"
+                                    tools:text="Artifiction" />
+                            </LinearLayout>
+
+                            <FrameLayout
+                                android:id="@+id/slider"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:layout_marginHorizontal="15dp"
+                                android:layout_marginBottom="4dp"
+                                app:layout_constraintBottom_toTopOf="@id/duration_frame"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@id/textLayout">
+
+                                <com.google.android.material.slider.Slider
+                                    android:id="@+id/slider_vert"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    app:labelBehavior="gone"
+                                    app:thumbHeight="0dp"
+                                    app:thumbTrackGapSize="0dp"
+                                    app:thumbWidth="0dp"
+                                    app:trackHeight="8dp"
+                                    tools:value="0.05"
+                                    tools:visibility="visible" />
+                            </FrameLayout>
+
+                            <FrameLayout
+                                android:id="@+id/duration_frame"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="28dp"
+                                android:layout_marginBottom="12dp"
+                                app:layout_constraintBottom_toTopOf="@id/sheet_mid_button"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@id/slider">
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/position"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif"
+                                    android:text="@string/default_time"
+                                    android:textColor="?attr/colorAccent"
+                                    android:textFontWeight="600" />
+
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/duration"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="end"
+                                    android:fontFamily="sans-serif"
+                                    android:text="@string/default_time"
+                                    android:textColor="?attr/colorAccent"
+                                    android:textFontWeight="600" />
+                            </FrameLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/sheet_mid_button"
+                                android:layout_width="70dp"
+                                android:layout_height="70dp"
+                                android:layout_marginTop="8dp"
+                                android:background="@drawable/bg_play_anim"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                app:layout_constraintHorizontal_weight="0.2"
+                                app:backgroundTint="?attr/colorSecondaryContainer"
+                                app:icon="@drawable/play_anim"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="42dp"
+                                app:iconTint="?attr/colorOnSecondaryContainer"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@id/duration_frame" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/reply10"
+                                android:layout_width="70dp"
+                                android:layout_height="70dp"
+                                android:background="@drawable/rp_buttons_dynamic"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:visibility="visible"
+                                android:layout_marginLeft="18dp"
+                                app:layout_constraintHorizontal_weight="0.25"
+                                app:icon="@drawable/replay_10"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="38sp"
+                                app:iconTint="?attr/colorOnSurface"
+                                app:layout_constraintBottom_toBottomOf="@id/sheet_mid_button"
+                                app:layout_constraintEnd_toStartOf="@id/sheet_mid_button"
+                                app:layout_constraintHorizontal_bias="0.5"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="@id/sheet_mid_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/rewind_back"
+                                android:layout_width="70dp"
+                                android:layout_height="70dp"
+                                android:background="@drawable/rp_buttons_dynamic"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:layout_marginLeft="18dp"
+                                app:layout_constraintHorizontal_weight="0.25"
+                                android:insetTop="0dp"
+                                app:icon="@drawable/replay_5"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="38sp"
+                                app:iconTint="?attr/colorOnSurface"
+                                app:layout_constraintBottom_toBottomOf="@id/sheet_mid_button"
+                                app:layout_constraintEnd_toStartOf="@id/reply10"
+                                app:layout_constraintHorizontal_bias="0.5"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="@id/sheet_mid_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/forward10"
+                                android:layout_width="70dp"
+                                android:layout_height="70dp"
+                                android:background="@drawable/rp_buttons_dynamic"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:layout_marginRight="18dp"
+                                app:layout_constraintHorizontal_weight="0.25"
+                                android:visibility="visible"
+                                app:icon="@drawable/forward_10"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="38sp"
+                                app:iconTint="?attr/colorOnSurface"
+                                app:layout_constraintBottom_toBottomOf="@id/sheet_mid_button"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/sheet_mid_button"
+                                app:layout_constraintTop_toTopOf="@id/sheet_mid_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/rewind_forward"
+                                android:layout_width="70dp"
+                                android:layout_height="70dp"
+                                android:background="@drawable/rp_buttons_dynamic"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:layout_marginRight="18dp"
+                                app:layout_constraintHorizontal_weight="0.25"
+                                app:icon="@drawable/forward_5"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="38sp"
+                                app:iconTint="?attr/colorOnSurface"
+                                app:layout_constraintBottom_toBottomOf="@id/sheet_mid_button"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/forward10"
+                                app:layout_constraintTop_toTopOf="@id/sheet_mid_button" />
+
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                        <LinearLayout
+                            android:id="@+id/actionBar"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="14dp"
+                            android:visibility="gone"
+                            android:gravity="end"
+                            android:paddingStart="24dp"
+                            android:paddingTop="4dp"
+                            android:paddingEnd="24dp"
+                            android:paddingBottom="4dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="@id/controls"
+                            app:layout_constraintStart_toStartOf="@id/controls">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/lyrics"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:checkable="true"
+                                android:contentDescription="@string/dialog_lyrics"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:saveEnabled="false"
+                                android:tooltipText="@string/dialog_lyrics"
+                                app:icon="@drawable/ic_article"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24sp"
+                                app:iconTint="?attr/colorOnSurface" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/sheet_mode"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:checkable="false"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:saveEnabled="false"
+                                android:tooltipText="@string/repeat_mode"
+                                app:icon="@drawable/repeat"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24sp"
+                                app:iconTint="?attr/colorOnSurface" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/sheet_random"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:checkable="false"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:saveEnabled="false"
+                                android:tooltipText="@string/shuffle"
+                                app:icon="@drawable/ic_shuffle"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24sp"
+                                app:iconTint="?attr/colorOnSurface" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/favor"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:checkable="true"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:saveEnabled="false"
+                                android:tooltipText="@string/playlist_favourite"
+                                android:visibility="gone"
+                                app:icon="@drawable/sl_check_fav"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24sp"
+                                app:iconTint="@color/sl_fav_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/timer"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:checkable="true"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:saveEnabled="false"
+                                android:tooltipText="@string/timer"
+                                app:icon="@drawable/sl_check_timer"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24sp"
+                                app:iconTint="?attr/colorOnSurface"
+                                app:toggleCheckedStateOnClick="false" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/playlist"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rp_buttons"
+                                android:contentDescription="@string/current_playlist"
+                                android:insetBottom="0dp"
+                                android:insetLeft="0dp"
+                                android:insetRight="0dp"
+                                android:insetTop="0dp"
+                                android:tooltipText="@string/current_playlist"
+                                app:icon="@drawable/ic_playlist_play"
+                                app:iconGravity="textStart"
+                                app:iconPadding="0dp"
+                                app:iconSize="24dp"
+                                app:iconTint="?attr/colorOnSurface" />
+                        </LinearLayout>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </FrameLayout>
+
+                <!-- ======= Контейнер ТАФСИРА (изначально скрыт) ======= -->
+                <FrameLayout
+                    android:id="@+id/tafsirFrame"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:background="@drawable/rounded"
+                    android:clipToPadding="false"
+                    android:paddingBottom="16dp"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btns">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:clipToPadding="false">
+
+                        <!-- Верхняя панель тафсира -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingVertical="8dp"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/forwardPageTafsir"
+                                style="@style/Widget.Material3.Button.IconButton.Filled"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="start"
+                                android:layout_marginStart="8dp"
+                                app:icon="@drawable/play_l" />
+
+                            <RadioGroup
+                                android:id="@+id/tafsirDictQuranRadioGroup"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <RadioButton
+                                    android:id="@+id/tafsirRadioButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/segment_btn_left"
+                                    android:button="@android:color/transparent"
+                                    android:checked="true"
+                                    android:padding="16dp"
+                                    android:text="Тафсир"
+                                    android:textColor="@drawable/text_color_selector" />
+
+                                <RadioButton
+                                    android:id="@+id/dictRadioButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/segment_btn_right"
+                                    android:button="@android:color/transparent"
+                                    android:padding="16dp"
+                                    android:text="Словарь"
+                                    android:textColor="@drawable/text_color_selector" />
+                            </RadioGroup>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/backPageTafsir"
+                                style="@style/Widget.Material3.Button.IconButton.Filled"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end"
+                                android:layout_marginEnd="8dp"
+                                app:icon="@drawable/play" />
+                        </LinearLayout>
+
+                        <!-- Список аятов -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/tafsirRecycler"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:clipToPadding="false"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:paddingBottom="100dp"
+                            android:scrollbars="vertical"
+                            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                            tools:listitem="@layout/item_tafsir_ayah" />
+                    </LinearLayout>
+                </FrameLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <!-- ======== Правое меню: Закладки ======== -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/quranBM"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:paddingTop="30dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="20dp"
+            android:text="Закладки"
+            android:textSize="22sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/bookmarksQuranRecycle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="44dp"
+            app:fastScrollEnabled="true"
+            app:fastScrollHorizontalThumbDrawable="@drawable/thumb_b"
+            app:fastScrollHorizontalTrackDrawable="@drawable/line_x"
+            app:fastScrollVerticalThumbDrawable="@drawable/thumb_b"
+            app:fastScrollVerticalTrackDrawable="@drawable/line_x"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+    </com.google.android.material.navigation.NavigationView>
+
+    <!-- ======== Левое меню: Содержание ======== -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navMenuDrawer"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:paddingTop="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:layout_marginTop="20sp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:text="Содержание"
+                android:textSize="22sp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/dropdownMenu"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Категория">
+
+                <AutoCompleteTextView
+                    android:id="@+id/dropdownMenuAutoComplete"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:gravity="center"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/quranDrawerContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="16dp"
+                app:fastScrollEnabled="true"
+                app:fastScrollHorizontalThumbDrawable="@drawable/thumb_b"
+                app:fastScrollHorizontalTrackDrawable="@drawable/line_x"
+                app:fastScrollVerticalThumbDrawable="@drawable/thumb_b"
+                app:fastScrollVerticalTrackDrawable="@drawable/line_x"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        </LinearLayout>
+    </com.google.android.material.navigation.NavigationView>
+
+</androidx.drawerlayout.widget.DrawerLayout>

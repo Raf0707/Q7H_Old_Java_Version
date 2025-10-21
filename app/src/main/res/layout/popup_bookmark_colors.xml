@@ -1,0 +1,62 @@
+<!-- res/layout/popup_bookmark_colors.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:background="@drawable/popup_background"
+    android:elevation="8dp">
+
+    <ImageView
+        android:id="@+id/color_white"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full"
+        android:layout_margin="8dp"
+        android:contentDescription="Белый" />
+
+    <!-- Красная закладка -->
+        <ImageView
+        android:id="@+id/color_red"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full_red"
+        android:layout_margin="8dp"
+        android:contentDescription="Красный" />
+
+    <!-- Зеленая закладка -->
+        <ImageView
+        android:id="@+id/color_green"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full_green"
+        android:layout_margin="8dp"
+        android:contentDescription="Зеленый" />
+
+            <!-- Желтая закладка -->
+        <ImageView
+        android:id="@+id/color_yellow"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full_yellow"
+        android:layout_margin="8dp"
+        android:contentDescription="Желтый" />
+
+    <ImageView
+        android:id="@+id/color_blue"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full_blue"
+        android:layout_margin="8dp"
+        android:contentDescription="Желтый" />
+
+            <!-- Черная закладка -->
+        <ImageView
+        android:id="@+id/color_black"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/bookmark_full_black"
+        android:layout_margin="8dp"
+        android:contentDescription="Черный" />
+
+    </LinearLayout>
