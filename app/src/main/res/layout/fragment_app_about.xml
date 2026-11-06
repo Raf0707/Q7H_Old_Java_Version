@@ -45,7 +45,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="120dp"
                             android:orientation="horizontal"
-                            android:padding="4dp">
+                            android:padding="8dp">
 
                             <ImageView
                                 android:layout_width="160dp"
@@ -83,7 +83,6 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-
                             android:padding="4dp">
 
                             <com.google.android.material.button.MaterialButton
@@ -167,6 +166,18 @@
                                 android:textAlignment="textStart"
                                 android:textSize="20sp"
                                 app:icon="@drawable/bulb1"
+                                app:iconPadding="16dp"
+                                app:iconSize="24dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/letterBinSaskirBtn"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Письмо о единобожии имама Фахруддина Ибн Асакира Салахуддину Аль-Аюби"
+                                android:textAlignment="textStart"
+                                android:textSize="20sp"
+                                app:icon="@drawable/letter"
                                 app:iconPadding="16dp"
                                 app:iconSize="24dp" />
 
@@ -345,6 +356,57 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
+                    app:cardUseCompatPadding="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Авторы Тафсира: \n\n Абу Али Аль-Ашари \n Ахмад Абу Яхья \n\n При участии: \nКамиль-хазрат Самигуллин \n\n Редактор: \nАхмад Абу Яхья \n\n Верстка: \nAzan.ru"
+                            android:gravity="center"
+                            android:padding="16dp"
+                            android:textSize="20sp">
+                        </TextView>
+
+
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardUseCompatPadding="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="В данном приложении используются тексты тафсиров, взятые с публичного сайта Azan.ru, в соответствии со ст. 1274 ГК РФ, допускающей свободное цитирование в информационных и просветительских целях с обязательным указанием автора и источника. Все материалы приведены с соблюдением прав правообладателей и исключительно в некоммерческих целях"
+                            android:gravity="left"
+                            android:padding="16dp"
+                            android:textSize="20sp">
+                        </TextView>
+
+
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    android:layout_marginBottom="20dp"
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout

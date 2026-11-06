@@ -1,0 +1,23 @@
+<!-- res/menu/bookmark_color_menu.xml -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/color_white"
+        android:title="Белый"
+        android:icon="@drawable/bookmark_full" />
+    <item
+        android:id="@+id/color_red"
+        android:title="Красный"
+        android:icon="@drawable/bookmark_full_red" />
+    <item
+        android:id="@+id/color_green"
+        android:title="Зеленый"
+        android:icon="@drawable/bookmark_full_green" />
+    <item
+        android:id="@+id/color_yellow"
+        android:title="Желтый"
+        android:icon="@drawable/bookmark_full_yellow" />
+    <item
+        android:id="@+id/color_black"
+        android:title="Черный"
+        android:icon="@drawable/bookmark_full_black" />
+</menu>

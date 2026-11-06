@@ -10,11 +10,52 @@
     app:strokeColor="@color/md_theme_outlineVariant">
 
     <LinearLayout
+        android:id="@+id/container1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="12dp">
 
+        <!-- 🎧 Панель аудио управления -->
+        <LinearLayout
+            android:id="@+id/audioControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPlay"
+                style="@style/Widget.Material3.Button.IconButton.Filled"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_play_arrow"
+                android:contentDescription="Play ayah" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStop"
+                style="@style/Widget.Material3.Button.IconButton.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/stop_play_fill"
+                android:contentDescription="Stop playback"
+                android:layout_marginStart="8dp" />
+
+            <ProgressBar
+                android:id="@+id/audioProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="8dp"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/md_theme_primary" />
+        </LinearLayout>
+
+        <!-- 🔹 Номер аята -->
         <TextView
             android:id="@+id/num"
             android:layout_width="wrap_content"
@@ -23,32 +64,35 @@
             android:textStyle="bold"
             android:textColor="@color/md_theme_primary" />
 
+        <!-- 🔹 Арабский текст -->
         <TextView
             android:id="@+id/arabic"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="وَيَقُولُ الَّذِينَ آمَنُوا..."
-            android:textSize="20sp"
+            android:textSize="40sp"
             android:textAlignment="viewStart"
             android:textColor="#006600"
             android:layout_marginTop="6dp"
             android:lineSpacingExtra="4dp" />
 
+        <!-- 🔹 Перевод -->
         <TextView
             android:id="@+id/translate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Верующие говорят..."
-            android:textSize="16sp"
+            android:textSize="26sp"
             android:layout_marginTop="6dp"
             android:textColor="@android:color/black" />
 
+        <!-- 🔹 Тафсир -->
         <TextView
             android:id="@+id/tafsir"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Верующие говорят..."
-            android:textSize="16sp"
+            android:text="Комментарий..."
+            android:textSize="26sp"
             android:layout_marginTop="6dp"
             android:textColor="@android:color/black" />
 

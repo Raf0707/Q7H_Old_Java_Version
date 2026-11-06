@@ -1,0 +1,21 @@
+<!-- res/menu/color_picker_menu.xml -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/color_white"
+        android:title="Белый" />
+    <item
+        android:id="@+id/color_red"
+        android:title="Красный" />
+    <item
+        android:id="@+id/color_blue"
+        android:title="Синий" />
+    <item
+        android:id="@+id/color_green"
+        android:title="Зеленый" />
+    <item
+        android:id="@+id/color_black"
+        android:title="Черный" />
+    <item
+        android:id="@+id/color_yellow"
+        android:title="Желтый" />
+</menu>

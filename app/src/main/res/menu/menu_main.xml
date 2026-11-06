@@ -1,0 +1,32 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="raf.console.quran7hours.ui.MainActivity">
+    <!--item
+        android:id="@+id/action_search"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        android:icon="@drawable/search_24px"
+        app:showAsAction="ifRoom" /-->
+
+    <!--item
+        android:id="@+id/action_list"
+        android:orderInCategory="100"
+        android:title="Список"
+        android:icon="@drawable/list"
+        app:showAsAction="ifRoom" /-->
+
+    <!--item
+        android:id="@+id/action_hatm"
+        android:orderInCategory="100"
+        android:title="Хатм"
+        android:icon="@drawable/book"
+        app:showAsAction="ifRoom" /-->
+
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        android:icon="@drawable/ic_info"
+        app:showAsAction="ifRoom" />
+</menu>

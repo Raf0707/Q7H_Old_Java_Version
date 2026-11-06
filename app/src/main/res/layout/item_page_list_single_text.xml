@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <!-- Название суры -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/pageItemText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сура 2. Аль-Бакара - Корова"
+        android:textSize="18sp"
+        android:textFontWeight="600"
+        android:maxLines="3"
+        android:textColor="?attr/colorOnSecondaryContainer"
+        android:paddingBottom="4dp"/>
+
+
+</LinearLayout>

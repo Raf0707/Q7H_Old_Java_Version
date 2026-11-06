@@ -1,0 +1,14 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/selected_color" />
+            <corners android:radius="8dp" /> <!-- Закругление всех углов -->
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/unselected_color" />
+            <corners android:radius="8dp" /> <!-- Закругление всех углов -->
+        </shape>
+    </item>
+</selector>

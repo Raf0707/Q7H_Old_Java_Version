@@ -1,0 +1,5187 @@
+package raf.console.quran7hours.ui;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.AssetManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.media.MediaPlayer;
+import android.net.ConnectivityManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.Html;
+import android.text.InputType;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.PopupWindow;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.documentfile.provider.DocumentFile;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.AppBarConfiguration;
+import androidx.navigation.ui.NavigationUI;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputLayout;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import raf.console.quran7hours.R;
+import raf.console.quran7hours.adapters.BookmarkAdapter;
+import raf.console.quran7hours.adapters.DictionaryAdapter;
+import raf.console.quran7hours.adapters.DrawerQuranContentAdapter;
+import raf.console.quran7hours.adapters.ImageAdapter;
+import raf.console.quran7hours.adapters.ImageQCAdapter;
+import raf.console.quran7hours.adapters.PageListAdapter;
+import raf.console.quran7hours.adapters.SuraListAdapter;
+import raf.console.quran7hours.adapters.TafsirAdapter;
+import raf.console.quran7hours.databinding.ActivityMainBinding;
+import raf.console.quran7hours.databinding.ButtonsLayoutBinding;
+import raf.console.quran7hours.databinding.ItemFontSliderBinding;
+import raf.console.quran7hours.details.DetailsActivity;
+import raf.console.quran7hours.logic.viewmodel.PlayerViewModelGlobal;
+import raf.console.quran7hours.model.Bookmark;
+import raf.console.quran7hours.model.DictItem;
+import raf.console.quran7hours.model.QuranItemContent;
+import raf.console.quran7hours.model.SuraTicksView;
+import raf.console.quran7hours.model.TafsirItem;
+import raf.console.quran7hours.ui.service.GlobalAudioManager;
+import raf.console.quran7hours.utils.AsyncHttpClient;
+import raf.console.quran7hours.utils.IconColorUtil;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class MainActivity extends AppCompatActivity implements AsyncHttpClient.DownloadListener, SensorEventListener {
+
+    private static final String ZIP_FILE_NAME = "QuranPagesAudio.zip";
+    private static final int TOTAL_FILES_COUNT = 604;
+    private static final int REQUEST_CODE_OPEN_DOCUMENT_TREE = 42;
+    private ViewPager2 viewPager;
+    private BookmarkAdapter bookmarkAdapter;
+    private int currentPosition = 0;
+    private MediaPlayer mediaPlayer;
+    private List<File> audioFiles;
+    private int currentFileIndex = 0;
+
+    private RecyclerView suraList;
+    private SuraListAdapter suraAdapter;
+
+    private int[] suraTimingsMs = new int[] {
+            0, //1
+            15000, //2
+            2202250, //3
+            3524500, //4
+            5062400, //5
+            6171300, //6
+            7286200, //7
+            8421200, //8
+            8878400, //9
+            9832000, //10
+            10539800, //11
+            11302200, //12
+            11991200, //13
+            12325600, //14
+            12627700, //15
+            12889500, //16
+            13480000, //17
+            14026000, //18
+            14617300, //19
+            14940900, //20
+            15355850, //21
+            15729600, //22
+            16127000, //23
+            16490300, //24
+            16897000, //25
+            17201000, //26
+            17627600, //27
+            18004700, //28
+            18427700, //29
+            18720000, //30
+            18974000, //31
+            19121500, //32
+            19232430, //33
+            19650780, //34
+            19931280, //35
+            20176725, //36
+            20432100, //37
+            20758700, //38
+            21020380, //39
+            21414900, //40
+            21795680, //41
+            22047380, //42
+            22333650, //43
+            22631062, //44
+            22764910, //45
+            22920430, //46
+            23093050, //47
+            23252440, //48
+            23411600, //49
+            23511100, //50
+            23621900, //51
+            23741550, //52
+            23848980, //53
+            23974135, //54
+            24101890, //55
+            24237770, //56
+            24368600, //57
+            24543100, //58
+            24689000, //59
+            24840500, //60
+            24958900, //61
+            25033700, //62
+            25084300, //63
+            25146480, //64
+            25221000, //65
+            25316330, //66
+            25397200, //67
+            25500200, //68
+            25611700, //69
+            25707830, //70
+            25786470, //71
+            25857400, //72
+            25937780, //73
+            25992630, //74
+            26069500, //75
+            26119680, //76
+            26193620, //77
+            26248500, //78
+            26302250, //79
+            26357200, //80
+            26402700, //81
+            26433570, //82
+            26458810, //83
+            26506000, //84
+            26536600, //85
+            26563030, //86
+            26579460, //87
+            26596800, //88
+            26622260, //89
+            26659780, //90
+            26682130, //91
+            26697600, //92
+            26717050, //93
+            26730000, //94
+            26737560, //95
+            26747410, //96
+            26765100, //97
+            26772300, //98
+            26792700, //99
+            26801740, //100
+            26812530, //101
+            26822950, //102
+            26833450, //103
+            26837680, //104
+            26847980, //105
+            26855480, //106
+            26860747, //107
+            26868747, //108
+            26872116, //109
+            26878180, //110
+            26884270, //111
+            26892270, //112
+            26896849, //113
+            26903866 //114
+
+    };
+
+    private int[] pageTimingsMs = new int[] {
+            0, //1
+
+            15000, //2
+            33300, //3
+            84100, //4
+            141900, //5
+            187700, //6
+            241500, //7
+            293500, //8
+            343800, //9
+            388800, //10
+            435450, //11
+            489430, //12
+            538250, //13
+            586730, //14
+            633500, //15
+            675800, //16
+            717500, //17
+            764880, //18
+            811300, //19
+            865400, //20
+            913400, //21
+            962320, //22
+            1017630, //23
+            1063680, //24
+            1112350, //25
+            1158000, //26
+            1200630, //27
+            1245940, //28
+            1278310, //29
+            1312800, //30
+            1351890, //31
+            1381160, //32
+            1414160, //33
+            1456000, //34
+            1490920, //35
+            1528130, //36
+            1575400, //37
+            1620830, //38
+            1660230, //39
+            1691830, //40
+            1726180, //41
+            1764660, //42
+            1827780, //43
+            1883320, //44
+            1940670, //45
+            1997050, //46
+            2047560, //47
+            2097470, //48
+            2149220, //49
+
+            2202250, //50
+            2256360, //51
+            2308400, //52
+            2358180, //53
+            2411760, //54
+            2472545, //55
+            2526400, //56
+            2576780, //57
+            2621370, //58
+            2670800, //59
+            2720360, //60
+            2764970, //61
+            2812360, //62
+            2868430, //63 мм
+            2918380, //64
+            2965060, //65
+            3014930, //66
+            3064630, //67
+            3155590, //69
+            3191890, //70
+            3246883, //71
+            3240000,
+            3288000,
+            3336000,
+            3386000,
+            3431000,
+            3481000,
+            3524000,
+            3588000,
+            3639000,
+            3680000,
+            3727000,
+            3769000,
+            3823000,
+            3876000,
+            3931000,
+            3994000,
+            4053000,
+            4116000,
+            4164000,
+            4216000,
+            4273000,
+            4324000,
+            4375000,
+            4421000,
+            4480000,
+            4528000,
+            4581000,
+            4631000,
+            4679000,
+            4726000,
+            4779000,
+            4834000,
+            4887000,
+            4942000,
+            4990000,
+            5042000,
+            5089000,
+            5141000,
+            5192000,
+            5237000,
+            5279000,
+            5337000,
+            5393000,
+            5440000,
+            5489000,
+            5540000,
+            5602000,
+            5664000,
+            5726000,
+            5777000,
+            5887000,
+            5935000,
+            5983000,
+            6028000,
+            6077000,
+            6118000,
+            6171000,
+            6214000,
+
+
+            /*3524500, //77
+            6171300, //128
+            7286200, //151
+            8421200, //177
+            8878400, //187
+            9832000, //208
+            11991200, //249
+            12627700, //262
+            13480000, //282
+            14617300, //305
+            15355850, //322
+            15729600, //332
+            16127000, //342
+            16490300, //350
+            17201000, //367
+            17627600, //377
+            18974000, //411
+            19121500, //415
+            19232430, //418
+            19650780, //428
+            20432100, //446
+            20758700, //453
+            21795680, //477
+            22047380, //483
+            22631062, //496
+            22764910, //499
+            23093050, //507
+            23252440, //511
+            23511100, //518
+            23848980, //526
+            24543100, //542
+            24840500, //549
+            25033700, //553
+            25146480, //556
+            25316330, //560
+            25397200, //562
+            25857400, //572
+            25937780, //574
+            26248500, //582
+            26357200, //585
+            26402700, //586
+            26433570, //587
+            26536600, //590
+            26563030, //591
+            26622260, //593
+            26682130, //595
+            26737560, //597
+            26765100, //598
+            26833450, //601
+            26855480, //602
+            26872116, //603
+            26892270, //604*/
+
+    };
+
+    private PageListAdapter pageAdapter;
+
+    private SharedPreferences prefs;
+
+    // 🌐 HTTP-клиент (тот же, что в адаптере)
+    private final OkHttpClient httpClient = new OkHttpClient();
+
+    // 📂 Каталог кеша MP3
+    private File audioCacheDir;
+
+    // ⚙️ Флаги скачанных аятов (000001 → true)
+    private SharedPreferences audioPrefs;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private ExoPlayer exoPlayer;
+
+    private BottomSheetBehavior<FrameLayout> bottomSheetBehavior;
+
+    private static final String PREFS_NAME = "LastPagePrefs";
+    private static final String LAST_PAGE_KEY = "last_page_key";
+    ActivityMainBinding b;
+    private ImageButton btnStartPause;
+    private MediaPlayer zipMediaPlayer;
+    private boolean isPlaying = false;
+    private Integer[] numPageSures = new Integer[]{1, 2, 50, 77, 106, 128, 151, 177, 187, 208, 221, 235, 249, 255, 262, 267, 282, 293, 305, 312, 322, 332, 342, 350, 359, 367, 377, 385, 396, 404, 411, 415, 418, 428, 434, 440, 446, 453, 458, 467, 477, 483, 489, 496, 499, 502, 507, 511, 515, 518, 520, 523, 526, 528, 531, 534, 537, 542, 545, 549, 551, 553, 554, 556, 568, 560, 562, 564, 566, 568, 570, 572, 574, 575, 577, 578, 580, 582, 583, 585, 586, 587, 587, 589, 590, 591, 591, 592, 593, 594, 595, 595, 596, 596, 597, 597, 598, 598, 599, 599, 600, 600, 601, 601, 601, 602, 602, 602, 603, 603, 603, 604, 604, 604, 605};
+    private Integer[] numPageJuzes = new Integer[]{1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582};
+    private Integer[] numPageHizbs = new Integer[]{1, 11, 22, 32, 42, 51, 62, 72, 82, 92, 102, 112, 121, 132, 142, 151, 162, 173, 182, 192, 201, 212, 222, 231, 242, 252, 262, 272, 282, 292, 302, 312, 322, 332, 342, 352, 362, 371, 382, 392, 402, 413, 422, 431, 442, 451, 462, 472, 482, 491, 502, 513, 522, 531, 542, 553, 562, 572, 582, 591};
+
+    private Integer[] numPageManziles = new Integer[]{1, 77, 151, 235, 322, 404, 502};
+    private String[] manziles = new String[8];
+    private String[] sures = new String[115];
+    private String[] juzes = new String[31];
+
+    private String[] hizbs = new String[61];
+    private static final String SWITCH_STATE_KEY = "tajweedSwitchState";
+    private ArrayList<QuranItemContent> suresName = new ArrayList<QuranItemContent>();
+    // Создайте экземпляр BottomSheetBehavior для управления BottomSheet
+    private static final float SHAKE_THRESHOLD = 15.0f; // Пороговое значение ускорения
+    private Sensor accelerometer;
+    private long lastUpdate;
+
+    String selectedTafsirDirectory = "tafsir_abu_ali_al_ashary"; // Значение по умолчанию
+    public DrawerQuranContentAdapter drawerQuranContentAdapter;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        b = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(b.getRoot());
+
+        copyJSONFromAssets();
+
+        setSupportActionBar(b.toolbar);
+
+        Objects.requireNonNull(getSupportActionBar()).setTitle("");
+
+        showRandomQuoteOnLaunch();
+
+        prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        audioCacheDir = new File(getExternalFilesDir(null), "audio_cache");
+        audioPrefs = getSharedPreferences("audio_cache_prefs", MODE_PRIVATE);
+
+        viewPager = b.viewPager;
+        bookmarkAdapter = new BookmarkAdapter(this, viewPager);
+        viewPager.setLayoutDirection(ViewPager2.LAYOUT_DIRECTION_RTL);
+
+        // Use ImageAdapter for ViewPager2
+        ImageAdapter imageAdapter = new ImageAdapter(this, 604, viewPager);
+        ImageQCAdapter imageQCAdapter = new ImageQCAdapter(this, 604, viewPager);
+
+        // Восстановление состояния Switch
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean isSwitchChecked = sharedPreferences.getBoolean(SWITCH_STATE_KEY, false);
+        b.tajweedSwitch.setChecked(isSwitchChecked);
+
+        b.fullName.setText("Сура 1");
+
+        sures = new String[] {
+                "Сура 1. Аль-Фатиха\nОткрывающая",
+                "Сура 2. Аль-Бакара\nКорова",
+                "Сура 3. Али Имран\nСемейство Имрана",
+                "Сура 4. Ан-Ниса\nЖенщины",
+                "Сура 5. Аль-Маида\nТрапеза",
+                "Сура 6. Аль-Ан'ам\nСкот",
+                "Сура 7. Аль-А'раф\nПреграды",
+                "Сура 8. Аль-Анфаль\nТрофеи",
+                "Сура 9. Ат-Тауба\nПокаяние",
+                "Сура 10. Юнус\nЮнус (Иона)",
+                "Сура 11. Худ\nХуд",
+                "Сура 12. Йусуф\nЙусуф (Иосиф)",
+                "Сура 13. Ар-Ра'д\nГром",
+                "Сура 14. Ибрахим\nИбрахим (Авраам)",
+                "Сура 15. Аль-Хиджр\nКаменное плато",
+                "Сура 16. Ан-Нахль\nПчелы",
+                "Сура 17. Аль-Исра\nНочной перенос",
+                "Сура 18. Аль-Кахф\nПещера",
+                "Сура 19. Марьям\nМарьям (Мария)",
+                "Сура 20. Та-Ха\nТа-Ха",
+                "Сура 21. Аль-Анбия\nПророки",
+                "Сура 22. Аль-Хадж\nПаломничество",
+                "Сура 23. Аль-Му'минун\nВерующие",
+                "Сура 24. Ан-Нур\nСвет",
+                "Сура 25. Аль-Фуркан\nРазличение",
+                "Сура 26. Аш-Шуара\nПоэты",
+                "Сура 27. Ан-Намль\nМуравьи",
+                "Сура 28. Аль-Касас\nРассказы",
+                "Сура 29. Аль-Анкабут\nПаук",
+                "Сура 30. Ар-Рум\nРимляне",
+                "Сура 31. Лукман\nЛукман",
+                "Сура 32. Ас-Саджда\nПоклон",
+                "Сура 33. Аль-Ахзаб\nСоюзники",
+                "Сура 34. Саба\nСабейцы",
+                "Сура 35. Фатыр\nТворец",
+                "Сура 36. Йа Син\nЙа Син",
+                "Сура 37. Ас-Саффат\nВыстраивающиеся в ряды",
+                "Сура 38. Сад\nБуква Сад",
+                "Сура 39. Аз-Зумар\nТолпы",
+                "Сура 40. Гафир\nПрощающий",
+                "Сура 41. Фуссылят\nРазъяснены",
+                "Сура 42. Аш-Шура\nСовет",
+                "Сура 43. Аз-Зухруф\nУкрашения",
+                "Сура 44. Ад-Духан\nДым",
+                "Сура 45. Аль-Джасия\nКоленопреклоненные",
+                "Сура 46. Аль-Ахкаф\nДюны",
+                "Сура 47. Мухаммад\nМухаммад",
+                "Сура 48. Аль-Фатх\nПобеда",
+                "Сура 49. Аль-Худжурат\nКомнаты",
+                "Сура 50. Каф\nБуква Каф",
+                "Сура 51. Аль-Дариат\nРассеивающие",
+                "Сура 52. Ат-Тур\nГора",
+                "Сура 53. Ан-Наджм\nЗвезда",
+                "Сура 54. Аль-Камар\nЛуна",
+                "Сура 55. Ар-Рахман\nМилостивый",
+                "Сура 56. Аль-Вакы'а\nНеотвратимое событие",
+                "Сура 57. Аль-Хадид\nЖелезо",
+                "Сура 58. Аль-Муджадала\nПрепирающаяся",
+                "Сура 59. Аль-Хашр\nСбор",
+                "Сура 60. Аль-Мумтахина\nИспытуемая",
+                "Сура 61. Ас-Сафф\nРяд",
+                "Сура 62. Аль-Джуму'а\nПятница",
+                "Сура 63. Аль-Мунафикун\nЛицемеры",
+                "Сура 64. Ат-Тагабун\nРаскрытие самообмана",
+                "Сура 65. Ат-Талак\nРазвод",
+                "Сура 66. Ат-Тахрим\nЗапрещение",
+                "Сура 67. Аль-Мульк\nВласть",
+                "Сура 68. Аль-Калам\nПисьменная трость",
+                "Сура 69. Аль-Хакка\nНеизбежное",
+                "Сура 70. Аль-Ма'аридж\nСтупени",
+                "Сура 71. Нух\nНух (Ной)",
+                "Сура 72. Аль-Джинн\nДжинны",
+                "Сура 73. Аль-Муззаммиль\nЗакутавшийся",
+                "Сура 74. Аль-Муддассир\nЗавернувшийся",
+                "Сура 75. Аль-Кыяма\nВоскресение",
+                "Сура 76. Аль-Инсан\nЧеловек",
+                "Сура 77. Аль-Мурсалят\nПосланные",
+                "Сура 78. Ан-Наба\nВесть",
+                "Сура 79. Ан-Назиат\nВырывающие",
+                "Сура 80. Абаса\nНахмурившийся",
+                "Сура 81. Ат-Таквир\nСкручивание",
+                "Сура 82. Аль-Инфитар\nРаскалывание",
+                "Сура 83. Аль-Мутаффифин\nОбвешивающие",
+                "Сура 84. Аль-Иншикак\nРазверзнется",
+                "Сура 85. Аль-Бурудж\nСозвездия",
+                "Сура 86. Ат-Тарик\nНочной путник",
+                "Сура 87. Аль-А'ля\nВысочайший",
+                "Сура 88. Аль-Гашия\nПокрывающее",
+                "Сура 89. Аль-Фаджр\nЗаря",
+                "Сура 90. Аль-Баляд\nГород",
+                "Сура 91. Аш-Шамс\nСолнце",
+                "Сура 92. Аль-Ляйл\nНочь",
+                "Сура 93. Ад-Духа\nУтро",
+                "Сура 94. Аш-Шарх\nРаскрытие",
+                "Сура 95. Ат-Тин\nИнжир",
+                "Сура 96. Аль-'Аляк\nСгусток крови",
+                "Сура 97. Аль-Кадр\nНочь предопределения",
+                "Сура 98. Аль-Баййина\nЯсное знамение",
+                "Сура 99. Аз-Зальзаля\nЗемлетрясение",
+                "Сура 100. Аль-'Адият\nСкачущие",
+                "Сура 101. Аль-Кари'а\nВеликое бедствие",
+                "Сура 102. Ат-Такасур\nСтрасть к приумножению",
+                "Сура 103. Аль-'Аср\nПредвечернее время",
+                "Сура 104. Аль-Хумаза\nХулитель",
+                "Сура 105. Аль-Филь\nСлон",
+                "Сура 106. Курайш\nКурайшиты",
+                "Сура 107. Аль-Ма'ун\nМелочь",
+                "Сура 108. Аль-Кяусар\nИзобилие",
+                "Сура 109. Аль-Кяфирун\nНеверующие",
+                "Сура 110. Ан-Наср\nПобеда",
+                "Сура 111. Аль-Ляхаб\nПальмовые волокна",
+                "Сура 112. Аль-Ихляс\nИскренность",
+                "Сура 113. Аль-Фаляк\nРассвет",
+                "Сура 114. Ан-Нас\nЛюди"
+        };
+
+        // Установка адаптера в зависимости от состояния Switch
+        if (isSwitchChecked) {
+            viewPager.setAdapter(imageAdapter);
+        } else {
+            viewPager.setAdapter(imageQCAdapter);
+        }
+
+        b.tajweedSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putBoolean(SWITCH_STATE_KEY, isChecked);
+                editor.apply();
+                if (isChecked) {
+                    viewPager.setAdapter(imageAdapter);
+                    //viewPager.setCurrentItem(currentPosition);
+                } else {
+                    viewPager.setAdapter(imageQCAdapter);
+                    //viewPager.setCurrentItem(currentPosition);
+                }
+                viewPager.setCurrentItem(currentPosition, false);
+
+            }
+        });
+
+        lastUpdate = System.currentTimeMillis();
+
+        imageAdapter.setOnPageChangedListener(new OnPageChangedListener() {
+            @Override
+            public void onPageChanged(int position) {
+                // Handle ViewPager2 position change
+                // Here you can pass the position wherever you need
+                currentPosition = position;
+
+            }
+
+            @Override
+            public int getCurrentPosition() {
+                return currentPosition;
+            }
+        });
+
+        imageQCAdapter.setOnPageChangedListener(new OnPageChangedListener() {
+            @Override
+            public void onPageChanged(int position) {
+                // Handle ViewPager2 position change
+                // Here you can pass the position wherever you need
+                currentPosition = position;
+
+            }
+
+            @Override
+            public int getCurrentPosition() {
+                return currentPosition;
+            }
+        });
+
+
+        String fullQuote = getIntent().getStringExtra("fullQuote");
+
+        if (fullQuote != null) {
+            // Показываем MaterialAlertDialog с полной цитатой
+            showQuoteDialog(fullQuote);
+        }
+
+        RecyclerView bookMarksRecycle = b.bookmarksQuranRecycle;
+        bookMarksRecycle.setAdapter(bookmarkAdapter);
+        bookMarksRecycle.setHasFixedSize(false);
+
+        LinearLayoutManager tafsirLayoutManager = new LinearLayoutManager(this);
+        b.tafsirRecycler.setLayoutManager(tafsirLayoutManager);
+        b.tafsirRecycler.setHasFixedSize(false);
+
+
+        bookmarkAdapter.loadBookmarks();
+
+
+        // Set current position from bookmarks if available
+        List<Bookmark> bookmarks = bookmarkAdapter.getBookmarks();
+        if (bookmarks != null && !bookmarks.isEmpty()) {//bookmarks.get(0).getPosition()
+            viewPager.post(() -> viewPager.setCurrentItem(bookmarkAdapter.getCurrentPosition(), false));
+        }
+
+        try {
+            // Обновление иконки закладки для текущей страницы
+            Menu menu = b.toolbar.getMenu();
+            MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+
+            // Обновляем иконку с учетом цвета закладки
+            updateBookmarkIcon(currentPosition, addBookmarkItem);
+
+            // Устанавливаем текущую позицию в адаптере
+            bookmarkAdapter.setCurrentPosition(currentPosition);
+
+            // Уведомляем адаптер об изменении данных
+            bookmarkAdapter.notifyDataSetChanged();
+        } catch (Exception e) {
+            // Вывод исключения в лог для отладки
+            e.printStackTrace();
+        }
+
+        drawerQuranContentAdapter = new DrawerQuranContentAdapter(this, suresName, viewPager, numPageSures);
+        RecyclerView quranContent = b.quranDrawerContent;
+        quranContent.setAdapter(drawerQuranContentAdapter);
+        quranContent.setHasFixedSize(true);
+
+        // ✅ === ТАФСИР (один источник) И СЛОВАРЬ: JSON-ВЕРСИЯ ===
+
+        // === ViewPager: смена страницы ===
+        // === ViewPager: смена страницы ===
+        // === ViewPager: смена страницы ===
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                saveLastPage(position);
+                try {
+                    // --- Обновление иконки закладки ---
+                    Menu menu = b.toolbar.getMenu();
+                    MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+                    updateBookmarkIcon(position, addBookmarkItem);
+
+                    // --- Загружаем данные в зависимости от текущего выбора ---
+                    String fileName = String.format("%03d.json", position + 1);
+
+                    // Проверяем выбранный режим и загружаем соответствующие данные
+                    if (b.tafsirDictQuranRadioGroup.getCheckedRadioButtonId() == R.id.dictRadioButton) {
+                        loadTafsirRecycler("quran_dict", fileName);
+                    } else {
+                        loadTafsirRecycler("tafsir_azan_ru", fileName);
+                    }
+
+                    currentPosition = position;
+                    bookmarkAdapter.setCurrentPosition(position);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                // Обновляем номер страницы и иконку книги
+                int pageNumber = position + 1;
+                b.pageNumberText.setText(String.valueOf(pageNumber));
+                setupPageNumberWithBookIcon(pageNumber);
+
+                bookmarkAdapter.notifyDataSetChanged();
+            }
+        });
+
+        suraList = b.suraList;
+        suraList.setLayoutManager(new LinearLayoutManager(this));
+        suraAdapter = new SuraListAdapter(
+                this,
+                sures,
+                index -> onSuraSelected(index)   // обработчик клика
+        );
+        suraList.setAdapter(suraAdapter);
+
+        List<Integer> pages = new ArrayList<>();
+        for (int i = 1; i <= 604; i++) {
+            pages.add(i);
+        }
+
+        pageAdapter = new PageListAdapter(
+                this,
+                pages,
+                pageNumber -> onPageSelected(pageNumber)
+        );
+
+
+
+
+// === КНОПКА "ВПЕРЁД" ===
+        b.forwardPageTafsir.setOnClickListener(v -> {
+            if (currentPosition + 1 >= 604) return;
+            int position = currentPosition + 1;
+            saveLastPage(position);
+
+            try {
+                Menu menu = b.toolbar.getMenu();
+                MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+                updateBookmarkIcon(position, addBookmarkItem);
+                currentPosition = position;
+                bookmarkAdapter.setCurrentPosition(position);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            b.pageNumberText.setText(String.valueOf(position + 1));
+            String fileName = String.format("%03d.json", position + 1);
+
+            // Проверяем выбранный режим и загружаем соответствующие данные
+            if (b.tafsirDictQuranRadioGroup.getCheckedRadioButtonId() == R.id.dictRadioButton) {
+                loadTafsirRecycler("quran_dict", fileName);
+                // Оставляем выбранным словарь в RadioGroup
+                b.tafsirDictQuranRadioGroup.check(R.id.dictRadioButton);
+            } else {
+                loadTafsirRecycler("tafsir_azan_ru", fileName);
+                // Оставляем выбранным тафсир в RadioGroup
+                b.tafsirDictQuranRadioGroup.check(R.id.tafsirRadioButton);
+            }
+
+            viewPager.setCurrentItem(position, true);
+            bookmarkAdapter.notifyDataSetChanged();
+        });
+
+// === КНОПКА "НАЗАД" ===
+        b.backPageTafsir.setOnClickListener(v -> {
+            if (currentPosition - 1 < 0) return;
+            int position = currentPosition - 1;
+            saveLastPage(position);
+
+            try {
+                Menu menu = b.toolbar.getMenu();
+                MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+                updateBookmarkIcon(position, addBookmarkItem);
+                currentPosition = position;
+                bookmarkAdapter.setCurrentPosition(position);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            b.pageNumberText.setText(String.valueOf(position + 1));
+            String fileName = String.format("%03d.json", position + 1);
+
+            setupPageNumberWithBookIcon(position + 1);
+
+            // Проверяем выбранный режим и загружаем соответствующие данные
+            if (b.tafsirDictQuranRadioGroup.getCheckedRadioButtonId() == R.id.dictRadioButton) {
+                loadTafsirRecycler("quran_dict", fileName);
+                // Оставляем выбранным словарь в RadioGroup
+                b.tafsirDictQuranRadioGroup.check(R.id.dictRadioButton);
+            } else {
+                loadTafsirRecycler("tafsir_azan_ru", fileName);
+                // Оставляем выбранным тафсир в RadioGroup
+                b.tafsirDictQuranRadioGroup.check(R.id.tafsirRadioButton);
+            }
+
+            viewPager.setCurrentItem(position, true);
+            bookmarkAdapter.notifyDataSetChanged();
+        });
+
+
+// === ПЕРЕКЛЮЧАТЕЛЬ "Тафсир / Словарь" ===
+        // === ПЕРЕКЛЮЧАТЕЛЬ "Тафсир / Словарь" ===
+        b.tafsirDictQuranRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            int currentPage = bookmarkAdapter.getCurrentPosition() + 1;
+            String fileName = String.format("%03d.json", currentPage); // ✅ формат с ведущими нулями
+
+            if (checkedId == R.id.dictRadioButton) {
+                loadTafsirRecycler("quran_dict", fileName);
+            } else if (checkedId == R.id.tafsirRadioButton) {
+                loadTafsirRecycler("tafsir_azan_ru", fileName);
+            }
+        });
+
+// === ИНИЦИАЛИЗАЦИЯ ПРИ ЗАПУСКЕ ===
+        b.tafsirDictQuranRadioGroup.check(R.id.tafsirRadioButton);
+        loadTafsirRecycler("tafsir_azan_ru", (bookmarkAdapter.getCurrentPosition() + 1) + ".json");
+
+        b.audioSuraPageRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.suraRadioButton) {
+                suraList.setLayoutManager(new LinearLayoutManager(this));
+                suraAdapter = new SuraListAdapter(
+                        this,
+                        sures,
+                        index -> onSuraSelected(index)
+                );
+                suraList.setAdapter(suraAdapter);
+            } else if (checkedId == R.id.pageRadioButton) {
+                suraList.setLayoutManager(new LinearLayoutManager(this));
+
+                PageListAdapter pageAdapter = new PageListAdapter(
+                        this,
+                        pages,
+                        pageNumber -> onPageSelected(pageNumber)
+                );
+                suraList.setAdapter(pageAdapter);
+            }
+        });
+
+
+        AutoCompleteTextView dropdownMenu = b.dropdownMenuAutoComplete;
+
+// Список категорий
+        List<String> categories = Arrays.asList("Суры", "Джузы", "Хизбы", "Манзили");
+
+// Адаптер для выпадающего меню
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line, // Используйте стандартный макет для проверки
+                categories
+        );
+
+// Привязать адаптер к AutoCompleteTextView
+        dropdownMenu.setAdapter(adapter);
+
+// Установить значение по умолчанию
+        dropdownMenu.setText(categories.get(0), false); // Устанавливаем "Суры" по умолчанию
+
+// Явно активируйте выпадающий список при нажатии
+        /*dropdownMenu.setOnClickListener(v -> {
+            if (!dropdownMenu.isPopupShowing()) {
+                // Если меню скрыто, показываем его
+                dropdownMenu.showDropDown();
+            } else {
+                // Если меню открыто, скрываем его
+                dropdownMenu.dismissDropDown();
+            }
+        });*/
+
+        initContent();
+        initMap(drawerQuranContentAdapter);
+
+// Обработчик выбора элемента
+        dropdownMenu.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedCategory = categories.get(position);
+
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            executor.execute(() -> {
+                switch (selectedCategory) {
+                    case "Суры":
+                        suresName.clear();
+                        initContent();
+                        initMap(drawerQuranContentAdapter);
+                        break;
+
+                    case "Джузы":
+                        suresName.clear();
+                        initContentJuzes();
+                        initMapJuzes(drawerQuranContentAdapter);
+                        break;
+
+                    case "Хизбы":
+                        suresName.clear();
+                        initContentHizbs();
+                        initMapHizbs(drawerQuranContentAdapter);
+                        break;
+
+                    case "Манзили":
+                        suresName.clear();
+                        initContentManziles();
+                        initMapManziles(drawerQuranContentAdapter);
+                        break;
+                }
+
+                handler.post(() -> {
+                    // Определяем массив страниц
+                    Integer[] numPages;
+                    switch (selectedCategory) {
+                        case "Суры":
+                            numPages = numPageSures;
+                            break;
+                        case "Джузы":
+                            numPages = numPageJuzes;
+                            break;
+                        case "Хизбы":
+                            numPages = numPageHizbs;
+                            break;
+                        case "Манзили":
+                            numPages = numPageManziles;
+                            break;
+                        default:
+                            numPages = numPageSures;
+                            break;
+                    }
+
+                    // Обновляем массив номеров страниц в адаптере
+                    drawerQuranContentAdapter.updateNumPages(numPages);
+
+                    drawerQuranContentAdapter = new DrawerQuranContentAdapter(
+                            this, suresName, viewPager, numPages
+                    );
+
+                    // Уведомляем RecyclerView об обновлении данных
+                    drawerQuranContentAdapter.notifyDataSetChanged();
+                });
+
+            });
+        });
+
+        b.drawerQuranLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+
+            }
+
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                b.dropdownMenuAutoComplete.setOnItemClickListener((parent, view, position, id) -> {
+                    String selectedCategory = categories.get(position);
+                    // Действие при выборе
+                    switch (selectedCategory) {
+                        case "Суры":
+                            initContent();
+                            initMap(drawerQuranContentAdapter);
+                            break;
+
+                        case "Джузы":
+                            initContentJuzes();
+                            initMapJuzes(drawerQuranContentAdapter);
+                            break;
+
+                        case "Хизбы":
+                            initContentHizbs();
+                            initMapHizbs(drawerQuranContentAdapter);
+                            break;
+
+                        case "Манзили":
+                            initContentManziles();
+                            initMapManziles(drawerQuranContentAdapter);
+                            break;
+                    }
+                    bookmarkAdapter.notifyDataSetChanged();
+                });
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                if (drawerView.getId() == b.quranBM.getId()) {
+                    // Получаем меню и элемент меню для закладки
+                    Menu menu = b.toolbar.getMenu();
+                    MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+
+                    // Обновляем иконку с учетом цвета закладки
+                    updateBookmarkIcon(currentPosition, addBookmarkItem);
+
+                    // Устанавливаем текущую позицию в адаптере
+                    bookmarkAdapter.setCurrentPosition(currentPosition);
+
+                    // Уведомляем адаптер об изменении данных
+                    bookmarkAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+
+            }
+        });
+
+        int lastPage = loadLastPage();
+        viewPager.setCurrentItem(lastPage, false);
+
+        if (bookmarkAdapter.isBookmarked(lastPage)) {
+            // Получаем меню и элемент меню для закладки
+            Menu menu = b.toolbar.getMenu();
+            MenuItem menuItem = menu.findItem(R.id.action_add_bookmark);
+
+            // Обновляем иконку с учетом цвета закладки
+            bookmarkAdapter.updateBookmarkIcon(lastPage, menuItem);
+        }
+
+        b.goToPage.setOnClickListener(v -> {
+            goToPageAlert();
+        });
+
+        b.infoApp.setOnClickListener(v -> {
+            Intent intent = new Intent(this, DetailsActivity.class);
+            startActivity(intent);
+        });
+
+        loadTextSettings();
+        observeTextSettings();
+
+        // Инициализация ExoPlayer
+        exoPlayer = new ExoPlayer.Builder(this).build();
+
+        // Настройка BottomSheet
+        FrameLayout bottomSheet = b.getRoot().findViewById(R.id.bottomSheetContainer);
+
+        initFixedBottomSheet();
+        setBottomSheetMargin(-16);
+
+        // Загрузка файла quran_7_hours.mp3
+        prepareFile("quran_7_hours.mp3");
+
+        if (savedInstanceState != null) {
+            restoreLastPlayedPosition();
+            restoreLastPlayedSura();
+        }
+
+        restoreLastPlayedPosition();
+        restoreLastPlayedSura();
+
+        audioCacheDir = new File(getExternalFilesDir(null), "audio_cache");
+        if (!audioCacheDir.exists()) audioCacheDir.mkdirs();
+
+        audioPrefs = getSharedPreferences("audio_cache_prefs", MODE_PRIVATE);
+
+// Загружаем состояние чекбокса KEEP SCREEN
+        boolean keepScreen = prefs.getBoolean("keep_screen_on", false);
+        b.chkKeepScreenOn.setChecked(keepScreen);
+        applyKeepScreenOn(keepScreen);
+        b.chkKeepScreenOn.setOnCheckedChangeListener((btn, isChecked) -> {
+            prefs.edit().putBoolean("keep_screen_on", isChecked).apply();
+            applyKeepScreenOn(isChecked);
+        });
+
+// ==== КНОПКА "СКАЧАТЬ ВСЕ АЯТЫ" ====
+        b.btnDownloadAllAyat.setOnClickListener(v -> {
+            b.progressDownloadAll.setVisibility(View.VISIBLE);
+            b.txtDownloadAllStatus.setVisibility(View.VISIBLE);
+            b.txtDownloadAllStatus.setText("Подготовка...");
+
+            if (prefs.getBoolean("all_ayahs_downloaded", false)) {
+                b.txtDownloadAllStatus.setText("Все аяты уже скачаны");
+                b.progressDownloadAll.setVisibility(View.GONE);
+                return;
+            }
+
+            new Thread(() -> downloadAllAyat()).start();
+        });
+
+        // Обработка кнопки паузы/воспроизведения
+        b.sheetMidButton.setOnClickListener(v -> {
+            if (exoPlayer.isPlaying()) {
+                exoPlayer.pause();
+            } else {
+                exoPlayer.play();
+                int duration = (int) exoPlayer.getDuration();
+                b.sliderVert.setValueTo(duration);
+                updateTotalTime(duration);
+            }
+            updatePlayButtonIcon();
+
+        });
+
+        // Обработка слайдера
+        b.sliderVert.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) {
+                long duration = exoPlayer.getDuration();
+                if (value > duration) {
+                    b.sliderVert.setValue((float) duration);
+                    exoPlayer.seekTo(duration);
+                } else {
+                    exoPlayer.seekTo((long) value);
+                }
+                updateCurrentTime((int) value);
+            }
+        });
+
+        // Обработка кнопки перемотки назад
+        b.rewindBack.setOnClickListener(v -> {
+            long currentPosition = exoPlayer.getCurrentPosition();
+            long newPosition = Math.max(0, currentPosition - 5000); // Перемотка на 5 секунд назад
+            exoPlayer.seekTo(newPosition);
+            if (!exoPlayer.isPlaying()) {
+                updatePlayButtonIcon();
+            }
+        });
+
+        // Обработка кнопки перемотки вперед
+        b.rewindForward.setOnClickListener(v -> {
+            long currentPosition = exoPlayer.getCurrentPosition();
+            long newPosition = Math.min(exoPlayer.getDuration(), currentPosition + 5000); // Перемотка на 5 секунд вперед
+            exoPlayer.seekTo(newPosition);
+            if (!exoPlayer.isPlaying()) {
+                updatePlayButtonIcon();
+            }
+        });
+
+        // Обработка кнопки перемотки назад
+        b.reply10.setOnClickListener(v -> {
+            long currentPosition = exoPlayer.getCurrentPosition();
+            long newPosition = Math.max(0, currentPosition - 10000); // Перемотка на 5 секунд назад
+            exoPlayer.seekTo(newPosition);
+            if (!exoPlayer.isPlaying()) {
+                updatePlayButtonIcon();
+            }
+        });
+
+        // Обработка кнопки перемотки вперед
+        b.forward10.setOnClickListener(v -> {
+            long currentPosition = exoPlayer.getCurrentPosition();
+            long newPosition = Math.min(exoPlayer.getDuration(), currentPosition + 10000); // Перемотка на 5 секунд вперед
+            exoPlayer.seekTo(newPosition);
+            if (!exoPlayer.isPlaying()) {
+                updatePlayButtonIcon();
+            }
+        });
+
+        // Настройка BottomSheetBehavior
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehavior.STATE_EXPANDED:
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.close_svg);
+                        break;
+                    case BottomSheetBehavior.STATE_COLLAPSED:
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                        bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+                        break;
+                    case BottomSheetBehavior.STATE_HIDDEN:
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                        //bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+                        bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+                        break;
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // Перехват событий касания
+                bottomSheet.setOnTouchListener((v, event) -> true); // Возвращаем true, чтобы событие не передавалось дальше
+            }
+        });
+
+
+
+        // Получаем доступ к кнопкам из buttons_layout
+        //ButtonsLayoutBinding buttonsBinding = ButtonsLayoutBinding.bind(b.btns.getRoot());
+
+        b.imOpenCloseTafsir.setOnClickListener(v -> {
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                // Если BottomSheet свернут, то развернуть его
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                b.imOpenCloseTafsir.setImageResource(R.drawable.close_svg);
+                bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+            } else {
+                // Если BottomSheet развернут или находится в состоянии перетаскивания, то свернуть его
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+            }
+        });
+
+        b.audioTajweed.setOnClickListener(v -> {
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                // Если BottomSheet свернут, то развернуть его
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                b.imOpenCloseTafsir.setImageResource(R.drawable.close_svg);
+                bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+            } else {
+                // Если BottomSheet развернут или находится в состоянии перетаскивания, то свернуть его
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+            }
+        });
+
+
+        // В методах переключения тоже фиксируем высоту
+        b.audioButton.setOnClickListener(v -> {
+            b.playerFrame.setVisibility(View.VISIBLE);
+            b.tafsirFrame.setVisibility(View.GONE);
+            b.settingsFrame.setVisibility(View.GONE);
+            b.buttonsRadioGroup.check(R.id.audioButton);
+
+            // Фиксируем высоту и состояние
+            bottomSheetBehavior.setPeekHeight(dp(50), false);
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                setBottomSheetMargin(dp(16));
+            }
+        });
+
+        b.tafsirButton.setOnClickListener(v -> {
+            b.playerFrame.setVisibility(View.GONE);
+            b.settingsFrame.setVisibility(View.GONE);
+            b.tafsirFrame.setVisibility(View.VISIBLE);
+
+            // Фиксируем высоту и состояние
+            bottomSheetBehavior.setPeekHeight(dp(50), false);
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                setBottomSheetMargin(dp(16));
+            }
+
+            // Загружаем данные в зависимости от текущего выбора
+            String fileName = String.format("%03d.json", currentPosition + 1);
+            if (b.tafsirDictQuranRadioGroup.getCheckedRadioButtonId() == R.id.dictRadioButton) {
+                loadTafsirRecycler("quran_dict", fileName);
+            } else {
+                loadTafsirRecycler("tafsir_azan_ru", fileName);
+            }
+        });
+
+        b.settingsButton.setOnClickListener(v -> {
+            // Показываем экран настроек
+            b.playerFrame.setVisibility(View.GONE);
+            b.tafsirFrame.setVisibility(View.GONE);
+            b.settingsFrame.setVisibility(View.VISIBLE);
+
+            // Ставим чек в RadioGroup на настройки
+            b.buttonsRadioGroup.check(R.id.settingsButton);
+
+            // Фиксируем высоту и состояние
+            bottomSheetBehavior.setPeekHeight(dp(50), false);
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                setBottomSheetMargin(dp(16));
+            }
+
+            // Инициализация настроек (если нужно обновить UI)
+            loadTextSettings();
+        });
+
+        /*b.settingsTextTitle.setOnClickListener(v -> {
+            toggleBottomSheetTheme();
+            matchPlaybackButtonColors();
+        });*/
+
+        bottomSheet.post(() -> {
+            bottomSheetBehavior.setPeekHeight((int) getResources().getDisplayMetrics().density * 16);
+            bottomSheetBehavior.setExpandedOffset(dp(100));
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.playerFrame), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(
+                    v.getPaddingLeft(),
+                    v.getPaddingTop(),
+                    v.getPaddingRight(),
+                    systemBars.bottom + dp(24) // безопасный отступ снизу
+            );
+            return insets;
+        });
+
+
+
+        exoPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                // Этот метод вызывается при переходе на новый трек
+                if (mediaItem != null) {
+                    // Обновляем название трека
+                    //b.suraNameMini.setText(mediaItem.mediaMetadata.title);
+
+                    // Обновляем прогресс и длительность
+                    b.sliderVert.setValue((int) exoPlayer.getCurrentPosition());
+                    b.sliderVert.setValueTo((int) exoPlayer.getDuration());
+                    updateCurrentTime((int) exoPlayer.getCurrentPosition());
+                    updateTotalTime((int) exoPlayer.getDuration());
+
+                    // Устанавливаем иконку воспроизведения
+                    //binding.sheetMidButton.setIconResource(R.drawable.pause_24px);
+                    updatePlayButtonIcon();
+
+                    // Запускаем анимацию обложки (если есть)
+                    // showCurrentArtwork();
+
+                    // Если плеер не воспроизводит, запускаем воспроизведение
+                    if (!exoPlayer.isPlaying()) {
+                        exoPlayer.play();
+                    }
+
+                }
+            }
+
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                // Этот метод вызывается при изменении состояния воспроизведения
+
+                if (playbackState == ExoPlayer.STATE_ENDED) {
+                    // Обнуляем сохраненное время
+                    SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("SuraPlayerPrefs", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putLong("lastPlayedPosition", 0);
+                    editor.putString("lastSuraFileName", null);
+                    editor.apply();
+                    updatePlayButtonIcon();
+                }
+
+                if (playbackState == ExoPlayer.STATE_READY) {
+                    // Обновляем UI, когда плеер готов к воспроизведению
+                    if (playbackState == ExoPlayer.STATE_READY) {
+                        // Обновляем UI, когда плеер готов к воспроизведению
+                        MediaItem currentMediaItem = exoPlayer.getCurrentMediaItem();
+                        if (currentMediaItem != null) {
+                            //b.suraNameMini.setText(currentMediaItem.mediaMetadata.title);
+                        }
+
+                        // Получаем текущую позицию и длительность
+                        int currentPosition = (int) exoPlayer.getCurrentPosition();
+                        int totalDuration = (int) exoPlayer.getDuration();
+
+                        // Проверяем, что длительность больше 0
+                        if (totalDuration > 0) {
+                            // Проверяем, что текущая позиция не превышает длительность
+                            if (currentPosition > totalDuration) {
+                                currentPosition = totalDuration; // Устанавливаем на максимум
+                            }
+
+                            b.sliderVert.setValue(currentPosition);
+                            b.sliderVert.setValueTo(totalDuration);
+                            updateCurrentTime(currentPosition);
+                            updateTotalTime(totalDuration);
+                            updatePlayButtonIcon();
+                        }
+                    }
+
+                } else {
+                    // Если плеер не готов, устанавливаем иконку паузы
+                    //binding.sheetMidButton.setIconResource(R.drawable.play_arrow_24px);
+                }
+                //b.suraNameMini.setText("Коран за 7 часов");
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                if (isPlaying) {
+                    // 🔹 Регистрируем текущий плеер как основной
+                    GlobalAudioManager.setMainPlayer(exoPlayer);
+
+                    // 🔹 Глушим тафсир, если он включен
+                    GlobalAudioManager.stopTafsirIfPlaying();
+
+                    b.sheetMidButton.setIconResource(R.drawable.pause_24px);
+                    startUpdatingProgress(); // Запускаем обновление прогресса
+                } else {
+                    b.sheetMidButton.setIconResource(R.drawable.play_arrow_24px);
+                    stopUpdatingProgress(); // Останавливаем обновление прогресса
+                }
+            }
+
+        });
+
+        // Обновление прогресса
+        handler.post(updateProgressTask);
+
+    }
+
+
+    private void applyKeepScreenOn(boolean enable) {
+        if (enable) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    private void onPageSelected(int pageNumber) {
+        if (exoPlayer == null) return;
+
+        Log.d("CLICK", "Клик на страницу: " + pageNumber);
+
+        int index = pageNumber - 1;
+
+        if (pageTimingsMs == null || pageTimingsMs.length <= index) {
+            Toast.makeText(this, "Нет таймингов страниц", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int ms = pageTimingsMs[index];
+        exoPlayer.seekTo(ms);
+        exoPlayer.play();
+
+        // Подсвечиваем выбранную страницу
+        if (pageAdapter != null) {
+            pageAdapter.setCurrentPlaying(pageNumber);
+        }
+
+        Toast.makeText(
+                this,
+                "Переход к странице: " + pageNumber,
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+
+    private void downloadAllAyat() {
+        try {
+            int totalSurahs = 114;
+            int totalAyat;
+
+            // количество аятов по сурам, как в твоём парсере
+            int[] ayahCount = {
+                    0,
+                    7, 286, 200, 176, 120, 165, 206, 75, 129, 109,
+                    123, 111, 43, 52, 99, 128, 111, 110, 98, 135,
+                    112, 78, 118, 64, 77, 227, 93, 88, 69, 60,
+                    34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
+                    54, 53, 89, 59, 37, 35, 38, 29, 18, 45,
+                    60, 49, 62, 55, 78, 96, 29, 22, 24, 13,
+                    14, 11, 11, 18, 12, 12, 30, 52, 52, 44,
+                    28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
+                    29, 19, 36, 25, 22, 17, 19, 26, 30, 20,
+                    15, 21, 11, 8, 8, 19, 5, 8, 8, 11,
+                    11, 8, 3, 9, 5, 4, 7, 3, 6, 3,
+                    5, 4, 5, 6
+            };
+
+            totalAyat = IntStream.rangeClosed(1, totalSurahs).map(s -> ayahCount[s]).sum();
+
+            int processed = 0;
+
+            for (int surah = 1; surah <= 114; surah++) {
+                for (int ayah = 1; ayah <= ayahCount[surah]; ayah++) {
+
+                    downloadSingleAyah(surah, ayah);
+                    processed++;
+
+                    int finalProcessed = processed;
+                    int finalSurah = surah;
+                    int finalAyah = ayah;
+
+                    runOnUiThread(() ->
+                            b.txtDownloadAllStatus.setText(
+                                    "Сура " + finalSurah +
+                                            " | Аят " + finalAyah +
+                                            " (" + finalProcessed + "/" + totalAyat + ")"
+                            )
+                    );
+                }
+            }
+
+            prefs.edit().putBoolean("all_ayahs_downloaded", true).apply();
+
+            runOnUiThread(() -> {
+                b.txtDownloadAllStatus.setText("Готово! Все аяты сохранены.");
+                b.progressDownloadAll.setVisibility(View.GONE);
+            });
+
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                b.txtDownloadAllStatus.setText("Ошибка: " + e.getMessage());
+                b.progressDownloadAll.setVisibility(View.GONE);
+            });
+        }
+    }
+
+    private void downloadSingleAyah(int surah, int ayah) {
+        try {
+            String surahStr = String.format(Locale.US, "%03d", surah);
+            String ayahStr = String.format(Locale.US, "%03d", ayah);
+
+            String key = surahStr + ayahStr;
+
+            File outFile = new File(audioCacheDir, key + ".mp3");
+            if (outFile.exists() && audioPrefs.getBoolean(key, false)) return; // уже скачан
+
+            String url = "https://azan.ru/upload/Quran/abu-bakr-al-shatri/" +
+                    surahStr + "/" + surahStr + ayahStr + ".mp3";
+
+            Request request = new Request.Builder().url(url).build();
+            Response response = httpClient.newCall(request).execute();
+
+            if (response.isSuccessful() && response.body() != null) {
+                try (InputStream in = response.body().byteStream();
+                     FileOutputStream out = new FileOutputStream(outFile)) {
+
+                    byte[] buffer = new byte[4096];
+                    int length;
+                    while ((length = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+                audioPrefs.edit().putBoolean(key, true).apply();
+            }
+
+            response.close();
+
+        } catch (Exception ignored) {
+        }
+    }
+
+
+
+
+    private void downloadSingleFile(String urlStr, String fileName) {
+        try {
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.connect();
+
+            File cacheDir = new File(getCacheDir(), "audio_cache");
+            if (!cacheDir.exists()) cacheDir.mkdirs();
+
+            File outFile = new File(cacheDir, fileName);
+            InputStream in = conn.getInputStream();
+            FileOutputStream out = new FileOutputStream(outFile);
+
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = in.read(buffer)) != -1) {
+                out.write(buffer, 0, len);
+            }
+
+            out.close();
+            in.close();
+            conn.disconnect();
+
+        } catch (Exception ignored) {
+        }
+    }
+
+
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    private void onSuraSelected(int index) {
+        if (exoPlayer == null) return;
+
+        if (suraTimingsMs == null || suraTimingsMs.length <= index) {
+            Toast.makeText(this, "Нет таймингов для сур", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Переход к нужному времени
+        int ms = suraTimingsMs[index];
+        exoPlayer.seekTo(ms);
+        exoPlayer.play();
+
+        // Подсветить выбранную суру
+        if (suraAdapter != null) {
+            suraAdapter.setCurrentPlaying(index);
+        }
+
+        Toast.makeText(
+                this,
+                "Перейти к суре: " + sures[index].split("\n")[0],
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+
+
+    private void initFixedBottomSheet() {
+        FrameLayout bottomSheet = findViewById(R.id.bottomSheetContainer);
+
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        bottomSheetBehavior.setFitToContents(false);
+        bottomSheetBehavior.setHideable(false);
+        bottomSheetBehavior.setDraggable(false);
+
+        int peekHeight = dp(250);
+        bottomSheetBehavior.setPeekHeight(peekHeight, false);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        setBottomSheetMargin(0);
+
+        // Обработчик для динамического отступа
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehavior.STATE_EXPANDED:
+                        // Когда открыт - убираем отступ
+                        setBottomSheetMargin(0);
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.close_svg);
+                        break;
+                    case BottomSheetBehavior.STATE_COLLAPSED:
+                        // Когда свернут - добавляем отступ
+                        setBottomSheetMargin(dp(16));
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                        break;
+                    case BottomSheetBehavior.STATE_HIDDEN:
+                        setBottomSheetMargin(dp(16));
+                        b.imOpenCloseTafsir.setImageResource(R.drawable.open_svg);
+                        break;
+                }
+
+                // Всегда фиксируем высоту при свертывании
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    bottomSheetBehavior.setPeekHeight(peekHeight, false);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // Плавно меняем отступ при анимации
+                if (slideOffset >= 0) {
+                    int margin = (int) (dp(16) * (1 - slideOffset));
+                    setBottomSheetMargin(margin);
+                }
+            }
+        });
+    }
+
+    // =======================
+//  НАСТРОЙКИ ТЕКСТА
+// =======================
+
+    private void loadTextSettings() {
+        SharedPreferences prefs = getSharedPreferences("TextSettings", MODE_PRIVATE);
+
+        // ======== ТАФСИР ========
+        b.chkTafsirArabic.setChecked(prefs.getBoolean("tafsir_show_arabic", true));
+        b.chkTafsirTranslation.setChecked(prefs.getBoolean("tafsir_show_translation", true));
+        b.chkTafsirComment.setChecked(prefs.getBoolean("tafsir_show_comment", true));
+
+        float tafsirArabicSize = prefs.getFloat("tafsir_arabic_size", 37f);
+        float tafsirTranslationSize = prefs.getFloat("tafsir_translation_size", 20f);
+        float tafsirCommentSize = prefs.getFloat("tafsir_comment_size", 18f);
+
+        b.sliderTafsirArabic.setValue(tafsirArabicSize);
+        b.sliderTafsirTranslation.setValue(tafsirTranslationSize);
+        b.sliderTafsirComment.setValue(tafsirCommentSize);
+
+        b.tafsirArabicSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", tafsirArabicSize));
+        b.tafsirTranslationSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", tafsirTranslationSize));
+        b.tafsirCommentSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", tafsirCommentSize));
+
+        // Слушатели слайдеров (тафсир)
+        b.sliderTafsirArabic.addOnChangeListener((slider, value, fromUser) -> {
+            b.tafsirArabicSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("tafsir_arabic_size", value).apply();
+        });
+        b.sliderTafsirTranslation.addOnChangeListener((slider, value, fromUser) -> {
+            b.tafsirTranslationSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("tafsir_translation_size", value).apply();
+        });
+        b.sliderTafsirComment.addOnChangeListener((slider, value, fromUser) -> {
+            b.tafsirCommentSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("tafsir_comment_size", value).apply();
+        });
+
+        // Чекбоксы (тафсир)
+        b.chkTafsirArabic.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("tafsir_show_arabic", isChecked).apply());
+        b.chkTafsirTranslation.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("tafsir_show_translation", isChecked).apply());
+        b.chkTafsirComment.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("tafsir_show_comment", isChecked).apply());
+
+        // Диалоги при клике на значение размера
+        b.tafsirArabicSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("tafsir_arabic_size", 12, 70, b.sliderTafsirArabic.getValue(),
+                        b.tafsirArabicSizeValue, b.sliderTafsirArabic));
+        b.tafsirTranslationSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("tafsir_translation_size", 12, 54, b.sliderTafsirTranslation.getValue(),
+                        b.tafsirTranslationSizeValue, b.sliderTafsirTranslation));
+        b.tafsirCommentSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("tafsir_comment_size", 12, 54, b.sliderTafsirComment.getValue(),
+                        b.tafsirCommentSizeValue, b.sliderTafsirComment));
+
+
+        // ======== СЛОВАРЬ ========
+        b.chkDictNum.setChecked(prefs.getBoolean("dict_show_num", true));
+        b.chkDictArabic.setChecked(prefs.getBoolean("dict_show_arabic", true));
+        b.chkDictRoot.setChecked(prefs.getBoolean("dict_show_root", true));
+        b.chkDictTranslate.setChecked(prefs.getBoolean("dict_show_translate", true));
+        b.chkDictGrammar.setChecked(prefs.getBoolean("dict_show_grammar", true));
+
+        float dictNumSize = prefs.getFloat("dict_num_size", 16f);
+        float dictArabicSize = prefs.getFloat("dict_arabic_size", 22f);
+        float dictRootSize = prefs.getFloat("dict_root_size", 18f);
+        float dictTranslateSize = prefs.getFloat("dict_translate_size", 18f);
+        float dictGrammarSize = prefs.getFloat("dict_grammar_size", 18f);
+
+        b.sliderDictNum.setValue(dictNumSize);
+        b.sliderDictArabic.setValue(dictArabicSize);
+        b.sliderDictRoot.setValue(dictRootSize);
+        b.sliderDictTranslate.setValue(dictTranslateSize);
+        b.sliderDictGrammar.setValue(dictGrammarSize);
+
+        b.dictNumSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", dictNumSize));
+        b.dictArabicSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", dictArabicSize));
+        b.dictRootSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", dictRootSize));
+        b.dictTranslateSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", dictTranslateSize));
+        b.dictGrammarSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", dictGrammarSize));
+
+        // Слушатели слайдеров (словарь)
+        b.sliderDictNum.addOnChangeListener((slider, value, fromUser) -> {
+            b.dictNumSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("dict_num_size", value).apply();
+        });
+        b.sliderDictArabic.addOnChangeListener((slider, value, fromUser) -> {
+            b.dictArabicSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("dict_arabic_size", value).apply();
+        });
+        b.sliderDictRoot.addOnChangeListener((slider, value, fromUser) -> {
+            b.dictRootSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("dict_root_size", value).apply();
+        });
+        b.sliderDictTranslate.addOnChangeListener((slider, value, fromUser) -> {
+            b.dictTranslateSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("dict_translate_size", value).apply();
+        });
+        b.sliderDictGrammar.addOnChangeListener((slider, value, fromUser) -> {
+            b.dictGrammarSizeValue.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+            prefs.edit().putFloat("dict_grammar_size", value).apply();
+        });
+
+        // Чекбоксы (словарь)
+        b.chkDictNum.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("dict_show_num", isChecked).apply());
+        b.chkDictArabic.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("dict_show_arabic", isChecked).apply());
+        b.chkDictRoot.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("dict_show_root", isChecked).apply());
+        b.chkDictTranslate.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("dict_show_translate", isChecked).apply());
+        b.chkDictGrammar.setOnCheckedChangeListener((button, isChecked) ->
+                prefs.edit().putBoolean("dict_show_grammar", isChecked).apply());
+
+        // Диалоги при клике на значение размера (словарь)
+        b.dictNumSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("dict_num_size", 12, 54, b.sliderDictNum.getValue(),
+                        b.dictNumSizeValue, b.sliderDictNum));
+        b.dictArabicSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("dict_arabic_size", 12, 70, b.sliderDictArabic.getValue(),
+                        b.dictArabicSizeValue, b.sliderDictArabic));
+        b.dictRootSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("dict_root_size", 12, 54, b.sliderDictRoot.getValue(),
+                        b.dictRootSizeValue, b.sliderDictRoot));
+        b.dictTranslateSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("dict_translate_size", 12, 54, b.sliderDictTranslate.getValue(),
+                        b.dictTranslateSizeValue, b.sliderDictTranslate));
+        b.dictGrammarSizeValue.setOnClickListener(v ->
+                showFontSizeDialog("dict_grammar_size", 12, 54, b.sliderDictGrammar.getValue(),
+                        b.dictGrammarSizeValue, b.sliderDictGrammar));
+    }
+
+    private void observeTextSettings() {
+        SharedPreferences prefs = getSharedPreferences("TextSettings", MODE_PRIVATE);
+
+        SharedPreferences.OnSharedPreferenceChangeListener listener = (sp, key) -> {
+            switch (key) {
+                case "tafsir_arabic_size":
+                case "tafsir_translation_size":
+                case "tafsir_comment_size":
+                case "tafsir_show_arabic":
+                case "tafsir_show_translation":
+                case "tafsir_show_comment":
+                case "dict_num_size":
+                case "dict_arabic_size":
+                case "dict_root_size":
+                case "dict_translate_size":
+                case "dict_grammar_size":
+                case "dict_show_num":
+                case "dict_show_arabic":
+                case "dict_show_root":
+                case "dict_show_translate":
+                case "dict_show_grammar":
+                    // просто обновляем адаптер
+                    RecyclerView.Adapter<?> adapter = b.tafsirRecycler.getAdapter();
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    break;
+            }
+        };
+
+        prefs.registerOnSharedPreferenceChangeListener(listener);
+    }
+
+    private void showFontSizeDialog(String key, float min, float max, float currentValue,
+                                    TextView valueTextView, com.google.android.material.slider.Slider slider) {
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setText(String.valueOf((int) currentValue));
+        input.setSelection(input.getText().length());
+        input.setPadding(32, 48, 32, 48); // немного отступов, чтобы не прилипало к краям
+
+        // Используем MaterialAlertDialogBuilder вместо обычного AlertDialog.Builder
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle("Введите размер текста")
+                .setMessage(String.format(Locale.getDefault(),
+                        "Введите число от %.0f до %.0f", min, max))
+                .setView(input)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    String str = input.getText().toString().trim();
+                    if (str.isEmpty()) return;
+
+                    try {
+                        float value = Float.parseFloat(str);
+                        if (value < min) value = min;
+                        if (value > max) value = max;
+
+                        valueTextView.setText(String.format(Locale.getDefault(), "%.0fsp", value));
+                        slider.setValue(value);
+
+                        getSharedPreferences("TextSettings", MODE_PRIVATE)
+                                .edit().putFloat(key, value).apply();
+
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, "Некорректное значение", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Отмена", (dialog, which) -> dialog.dismiss());
+
+        // Создаём и показываем диалог
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Дополнительная стилизация (необязательно)
+        Objects.requireNonNull(dialog.getWindow())
+                .setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+    }
+
+
+    private void setupPageNumberWithBookIcon(int pageNumber) {
+        // Определяем четность страницы
+        boolean isOddPage = pageNumber % 2 != 0; // нечетная страница
+
+        // Устанавливаем текст номера страницы
+        b.pageNumberText.setText(String.valueOf(pageNumber));
+
+        if (isOddPage) {
+            // Нечетная страница - справа (book_right справа от номера)
+            b.bookIconLeft.setVisibility(View.GONE);
+            b.bookIconRight.setVisibility(View.VISIBLE);
+        } else {
+            // Четная страница - слева (book_left слева от номера)
+            b.bookIconLeft.setVisibility(View.VISIBLE);
+            b.bookIconRight.setVisibility(View.GONE);
+        }
+    }
+
+    // Метод для установки отступа
+    private void setBottomSheetMargin(int marginTop) {
+        FrameLayout bottomSheet = findViewById(R.id.bottomSheetContainer);
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) bottomSheet.getLayoutParams();
+        if (params.topMargin != marginTop) {
+            params.topMargin = marginTop;
+            bottomSheet.setLayoutParams(params);
+        }
+    }
+
+
+    private void goToPageAlert() {
+
+        MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(this);
+
+        View dialogView = getLayoutInflater().inflate(R.layout.go_to_page_dialog, null);
+
+        alert.setCancelable(true);
+
+        EditText pageNum = dialogView.findViewById(R.id.pageNum);
+        TextView suraTitle = dialogView.findViewById(R.id.suraTitleAyats);
+        AutoCompleteTextView suraClassic = dialogView.findViewById(R.id.suraClassic);
+        AutoCompleteTextView ayatClassic = dialogView.findViewById(R.id.ayatClassic);
+        MaterialButton back = dialogView.findViewById(R.id.backPage);
+        MaterialButton forward = dialogView.findViewById(R.id.forwardPage);
+        Slider pageSlider = dialogView.findViewById(R.id.pageSlider);
+
+        TextInputLayout suraInputLayout = dialogView.findViewById(R.id.suraInputLayout);
+        TextInputLayout ayatInputLayout = dialogView.findViewById(R.id.ayatInputLayout);
+
+        String[] options = new String[] {"Страница", "Сура", "Джуз", "Хизб"};
+
+        sures = new String[] {
+                "Сура 1. Аль-Фатиха\nОткрывающая",
+                "Сура 2. Аль-Бакара\nКорова",
+                "Сура 3. Али Имран\nСемейство Имрана",
+                "Сура 4. Ан-Ниса\nЖенщины",
+                "Сура 5. Аль-Маида\nТрапеза",
+                "Сура 6. Аль-Ан'ам\nСкот",
+                "Сура 7. Аль-А'раф\nПреграды",
+                "Сура 8. Аль-Анфаль\nТрофеи",
+                "Сура 9. Ат-Тауба\nПокаяние",
+                "Сура 10. Юнус\nЮнус (Иона)",
+                "Сура 11. Худ\nХуд",
+                "Сура 12. Йусуф\nЙусуф (Иосиф)",
+                "Сура 13. Ар-Ра'д\nГром",
+                "Сура 14. Ибрахим\nИбрахим (Авраам)",
+                "Сура 15. Аль-Хиджр\nКаменное плато",
+                "Сура 16. Ан-Нахль\nПчелы",
+                "Сура 17. Аль-Исра\nНочной перенос",
+                "Сура 18. Аль-Кахф\nПещера",
+                "Сура 19. Марьям\nМарьям (Мария)",
+                "Сура 20. Та-Ха\nТа-Ха",
+                "Сура 21. Аль-Анбия\nПророки",
+                "Сура 22. Аль-Хадж\nПаломничество",
+                "Сура 23. Аль-Му'минун\nВерующие",
+                "Сура 24. Ан-Нур\nСвет",
+                "Сура 25. Аль-Фуркан\nРазличение",
+                "Сура 26. Аш-Шуара\nПоэты",
+                "Сура 27. Ан-Намль\nМуравьи",
+                "Сура 28. Аль-Касас\nРассказы",
+                "Сура 29. Аль-Анкабут\nПаук",
+                "Сура 30. Ар-Рум\nРимляне",
+                "Сура 31. Лукман\nЛукман",
+                "Сура 32. Ас-Саджда\nПоклон",
+                "Сура 33. Аль-Ахзаб\nСоюзники",
+                "Сура 34. Саба\nСабейцы",
+                "Сура 35. Фатыр\nТворец",
+                "Сура 36. Йа Син\nЙа Син",
+                "Сура 37. Ас-Саффат\nВыстраивающиеся в ряды",
+                "Сура 38. Сад\nБуква Сад",
+                "Сура 39. Аз-Зумар\nТолпы",
+                "Сура 40. Гафир\nПрощающий",
+                "Сура 41. Фуссылят\nРазъяснены",
+                "Сура 42. Аш-Шура\nСовет",
+                "Сура 43. Аз-Зухруф\nУкрашения",
+                "Сура 44. Ад-Духан\nДым",
+                "Сура 45. Аль-Джасия\nКоленопреклоненные",
+                "Сура 46. Аль-Ахкаф\nДюны",
+                "Сура 47. Мухаммад\nМухаммад",
+                "Сура 48. Аль-Фатх\nПобеда",
+                "Сура 49. Аль-Худжурат\nКомнаты",
+                "Сура 50. Каф\nБуква Каф",
+                "Сура 51. Аль-Дариат\nРассеивающие",
+                "Сура 52. Ат-Тур\nГора",
+                "Сура 53. Ан-Наджм\nЗвезда",
+                "Сура 54. Аль-Камар\nЛуна",
+                "Сура 55. Ар-Рахман\nМилостивый",
+                "Сура 56. Аль-Вакы'а\nНеотвратимое событие",
+                "Сура 57. Аль-Хадид\nЖелезо",
+                "Сура 58. Аль-Муджадала\nПрепирающаяся",
+                "Сура 59. Аль-Хашр\nСбор",
+                "Сура 60. Аль-Мумтахина\nИспытуемая",
+                "Сура 61. Ас-Сафф\nРяд",
+                "Сура 62. Аль-Джуму'а\nПятница",
+                "Сура 63. Аль-Мунафикун\nЛицемеры",
+                "Сура 64. Ат-Тагабун\nРаскрытие самообмана",
+                "Сура 65. Ат-Талак\nРазвод",
+                "Сура 66. Ат-Тахрим\nЗапрещение",
+                "Сура 67. Аль-Мульк\nВласть",
+                "Сура 68. Аль-Калам\nПисьменная трость",
+                "Сура 69. Аль-Хакка\nНеизбежное",
+                "Сура 70. Аль-Ма'аридж\nСтупени",
+                "Сура 71. Нух\nНух (Ной)",
+                "Сура 72. Аль-Джинн\nДжинны",
+                "Сура 73. Аль-Муззаммиль\nЗакутавшийся",
+                "Сура 74. Аль-Муддассир\nЗавернувшийся",
+                "Сура 75. Аль-Кыяма\nВоскресение",
+                "Сура 76. Аль-Инсан\nЧеловек",
+                "Сура 77. Аль-Мурсалят\nПосланные",
+                "Сура 78. Ан-Наба\nВесть",
+                "Сура 79. Ан-Назиат\nВырывающие",
+                "Сура 80. Абаса\nНахмурившийся",
+                "Сура 81. Ат-Таквир\nСкручивание",
+                "Сура 82. Аль-Инфитар\nРаскалывание",
+                "Сура 83. Аль-Мутаффифин\nОбвешивающие",
+                "Сура 84. Аль-Иншикак\nРазверзнется",
+                "Сура 85. Аль-Бурудж\nСозвездия",
+                "Сура 86. Ат-Тарик\nНочной путник",
+                "Сура 87. Аль-А'ля\nВысочайший",
+                "Сура 88. Аль-Гашия\nПокрывающее",
+                "Сура 89. Аль-Фаджр\nЗаря",
+                "Сура 90. Аль-Баляд\nГород",
+                "Сура 91. Аш-Шамс\nСолнце",
+                "Сура 92. Аль-Ляйл\nНочь",
+                "Сура 93. Ад-Духа\nУтро",
+                "Сура 94. Аш-Шарх\nРаскрытие",
+                "Сура 95. Ат-Тин\nИнжир",
+                "Сура 96. Аль-'Аляк\nСгусток крови",
+                "Сура 97. Аль-Кадр\nНочь предопределения",
+                "Сура 98. Аль-Баййина\nЯсное знамение",
+                "Сура 99. Аз-Зальзаля\nЗемлетрясение",
+                "Сура 100. Аль-'Адият\nСкачущие",
+                "Сура 101. Аль-Кари'а\nВеликое бедствие",
+                "Сура 102. Ат-Такасур\nСтрасть к приумножению",
+                "Сура 103. Аль-'Аср\nПредвечернее время",
+                "Сура 104. Аль-Хумаза\nХулитель",
+                "Сура 105. Аль-Филь\nСлон",
+                "Сура 106. Курайш\nКурайшиты",
+                "Сура 107. Аль-Ма'ун\nМелочь",
+                "Сура 108. Аль-Кяусар\nИзобилие",
+                "Сура 109. Аль-Кяфирун\nНеверующие",
+                "Сура 110. Ан-Наср\nПобеда",
+                "Сура 111. Аль-Ляхаб\nПальмовые волокна",
+                "Сура 112. Аль-Ихляс\nИскренность",
+                "Сура 113. Аль-Фаляк\nРассвет",
+                "Сура 114. Ан-Нас\nЛюди"
+        };
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                options
+        );
+
+        ArrayAdapter<String> suresTitleAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                sures
+        );
+
+        suraClassic.setCursorVisible(false);
+        suraClassic.setFocusableInTouchMode(false);
+
+        ayatClassic.setCursorVisible(false);
+        ayatClassic.setFocusableInTouchMode(false);
+
+        suraClassic.setOnItemClickListener((parent, view, position, id) -> {
+            // Получаем выбранное имя суры
+            String selectedSuraName = (String) parent.getItemAtPosition(position);
+
+            // Находим индекс выбранной суры в оригинальном списке suraNames
+            int suraIndex = -1;
+            for (int i = 0; i < sures.length; i++) {
+                if (sures[i].equals(selectedSuraName)) {
+                    suraIndex = i + 1; // +1 для получения реального номера суры
+                    break;
+                }
+            }
+
+            // Проверяем, что индекс найден
+            if (suraIndex != -1) {
+                // Заменяем текст на индекс суры
+                suraClassic.setText(String.valueOf(suraIndex), false);
+
+                // Обновляем ayatAutoComplete с использованием getNumAyatsOfSure(suraIndex)
+                int numAyats = bookmarkAdapter.getNumAyatsOfSure(suraIndex);
+                String[] ayatArray = new String[numAyats];
+                for (int i = 0; i < numAyats; i++) {
+                    ayatArray[i] = String.valueOf(i + 1);
+                }
+
+                ArrayAdapter<String> ayatAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, ayatArray);
+                ayatClassic.setAdapter(ayatAdapter);
+
+            } else {
+                // Обработка ошибки (если необходимо)
+                Snackbar.make(b.getRoot(), "Ошибка: выбранная сура не найдена", Snackbar.LENGTH_SHORT).show();
+            }
+        });
+
+        suraClassic.setAdapter(suresTitleAdapter);
+
+        back.setOnClickListener(view -> {
+            int mcurrentPage = viewPager.getCurrentItem() + 1;
+            if (pageNum.getText().toString().isEmpty()) {
+                pageNum.setText(String.valueOf(mcurrentPage));
+                pageSlider.setValue(mcurrentPage);
+            } else {
+                int page = Integer.parseInt(pageNum.getText().toString());
+                if (page > 1) {
+                    pageNum.setText(String.valueOf(page - 1));
+                    pageSlider.setValue(page - 1);
+                }
+            }
+        });
+
+        forward.setOnClickListener(view -> {
+            int mcurrentPage = viewPager.getCurrentItem() + 1;
+            if (pageNum.getText().toString().isEmpty()) {
+                pageNum.setText(String.valueOf(mcurrentPage));
+                pageSlider.setValue(mcurrentPage);
+            } else {
+                int page = Integer.parseInt(pageNum.getText().toString());
+                if (page < 604) {
+                    pageNum.setText(String.valueOf(page + 1));
+                    pageSlider.setValue(page + 1);
+                }
+            }
+        });
+
+        TextWatcher suraAyatWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String suraInput = suraClassic.getText().toString().replaceAll("[\\.\\-,\\s]+", "");
+                String ayatInput = ayatClassic.getText().toString().replaceAll("[\\.\\-,\\s]+", "");
+                if (ayatClassic.getText().toString().isEmpty()) ayatInput = "1";
+
+                int sura, ayat, page;
+                if (!suraInput.isEmpty() && !ayatInput.isEmpty()) {
+                    try {
+                        sura = Integer.parseInt(suraInput);
+                        ayat = Integer.parseInt(ayatInput);
+                    } catch (NumberFormatException e) {
+                        pageNum.setText("");
+                        return;
+                    }
+
+                    int numAyats = bookmarkAdapter.getNumAyatsOfSure(sura);
+                    if (!ayatInput.isEmpty()) {
+                        try {
+                            ayat = Integer.parseInt(ayatInput);
+                            if (ayat > numAyats) {
+                                // Если выбранный аят больше чем количество аятов в суре, очищаем поле
+                                ayatClassic.setText("");
+                                Snackbar.make(ayatClassic, "Выбранный аят не существует в этой суре", Snackbar.LENGTH_SHORT).show();
+                                return;
+                            }
+                        } catch (NumberFormatException e) {
+                            pageNum.setText("");
+                            return;
+                        }
+                    } else {
+                        // Если аят не указан, устанавливаем значение по умолчанию - 1
+                        ayat = 1;
+                    }
+
+                    page = bookmarkAdapter.goToAyat(sura, ayat);
+                    if (page != -1) {
+                        pageNum.setText(String.valueOf(page));
+                        suraTitle.setText(bookmarkAdapter.getSuraTitle(page) + ",\n" + bookmarkAdapter.getAyatsOnPage(page));
+                        pageSlider.setValue(page);
+
+                    } else if (!suraInput.isEmpty() && ayatInput.isEmpty()) {
+                        try {
+                            sura = Integer.parseInt(suraInput);
+                            ayat = 1;
+                        } catch (NumberFormatException e) {
+                            pageNum.setText("");
+                            return;
+                        }
+                        page = bookmarkAdapter.goToAyat(sura, ayat);
+                        if (page != -1) {
+                            pageNum.setText(String.valueOf(page));
+                            suraTitle.setText(bookmarkAdapter.getSuraTitle(page) + ",\n" + bookmarkAdapter.getAyatsOnPage(page));
+                        }
+                    } else {
+                        pageNum.setText("");
+                    }
+                } else {
+                    pageNum.setText("");
+                }
+            }
+        };
+
+        suraClassic.addTextChangedListener(suraAyatWatcher);
+        ayatClassic.addTextChangedListener(suraAyatWatcher);
+
+        pageNum.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String input = s.toString().replaceAll("[\\.\\-,\\s]+", "");
+                if (!input.isEmpty()) {
+                    int page;
+                    try {
+                        page = Integer.parseInt(input);
+                    } catch (NumberFormatException e) {
+                        suraTitle.setText("");
+                        return;
+                    }
+                    if (page >= 1 && page <= 604) {
+                        suraTitle.setText(bookmarkAdapter.getSuraTitle(page) + ",\n" + bookmarkAdapter.getAyatsOnPage(page));
+                        pageSlider.setValue(page);
+                    } else {
+                        suraTitle.setText("");
+                    }
+                } else {
+                    suraTitle.setText("");
+                }
+            }
+        });
+
+        pageSlider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
+            @Override
+            public void onStartTrackingTouch(Slider slider) {
+                // Начало взаимодействия, ничего не делаем
+            }
+
+            @Override
+            public void onStopTrackingTouch(Slider slider) {
+                int page = (int) slider.getValue();
+                pageNum.setText(String.valueOf(page));
+                suraTitle.setText(bookmarkAdapter.getSuraTitle(page) + ",\n" + bookmarkAdapter.getAyatsOnPage(page));
+                suraClassic.setText(String.valueOf(bookmarkAdapter.getSuraNum(page))); // Исправление
+                ayatClassic.setText("1");
+
+            }
+        });
+
+        alert.setNegativeButton("Отмена", (dialogInterface, i) -> {
+            // Ничего не делаем
+        });
+
+        alert.setPositiveButton("Перейти", (dialogInterface, i) -> {
+            if (pageNum.getText().toString().length() == 0) {
+                Snackbar.make(b.getRoot(), "Ничего не введено. Введите номер страницы", Snackbar.LENGTH_SHORT).show();
+            } else {
+                int page = Integer.parseInt(pageNum.getText().toString().replaceAll("[\\.\\-,\\s]+", ""));
+                if ((page < 1) || (page > 604) || (pageNum.getText().toString().isEmpty())) {
+                    Snackbar.make(b.getRoot(), "В Коране 604 страницы. Введите номер от 1 до 604", Snackbar.LENGTH_SHORT).show();
+                } else {
+                    viewPager.setCurrentItem(page - 1, true);
+                }
+            }
+        });
+
+        alert.setView(dialogView);
+        alert.show();
+    }
+
+    private void restoreLastPlayedSura() {
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("SuraPlayerPrefs", Context.MODE_PRIVATE);
+
+        // Получаем имя файла последней воспроизведенной суры
+        String lastSuraFileName = sharedPreferences.getString("lastSuraFileName", null);
+
+        // Получаем последнюю позицию воспроизведения
+        long lastPlayedPosition = sharedPreferences.getLong("lastPlayedPosition", 0);
+
+        if (lastSuraFileName != null) {
+            // Устанавливаем BottomSheet в раскрытое состояние
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            //b.slideDown.setIconResource(R.drawable.ic_expand_more);
+
+            prepareFile(lastSuraFileName);
+
+            // Устанавливаем позицию воспроизведения
+            exoPlayer.seekTo(lastPlayedPosition);
+
+            // Устанавливаем паузу после восстановления
+            exoPlayer.pause();
+
+            //b.suraNameMini.setText("Коран за 7 часов");
+
+            // Убедимся, что длительность аудиофайла установлена
+            /*exoPlayer.addListener(new Player.Listener() {
+                @Override
+                public void onPlaybackStateChanged(int playbackState) {
+                    if (playbackState == ExoPlayer.STATE_READY) {
+                        // Установим значение слайдера только после того, как длительность будет известна
+                        long duration = exoPlayer.getDuration();
+                        if (lastPlayedPosition >= 0 && lastPlayedPosition <= duration) {
+                            b.sliderVert.setValue((float) lastPlayedPosition);
+                            b.sliderVert.setValueTo((float) duration);
+                            updateCurrentTime((int) lastPlayedPosition);
+                            updateTotalTime((int) duration);
+                        }
+
+                        if (exoPlayer.isPlaying()) {
+                            //exoPlayer.pause();
+                            updatePlayButtonIcon(); // Обновляем иконку кнопки
+                        }
+                    }
+                }
+            });*/
+
+            exoPlayer.addListener(new Player.Listener() {
+                @Override
+                public void onPlaybackStateChanged(int playbackState) {
+
+                    if (playbackState == ExoPlayer.STATE_READY) {
+
+                        long duration = exoPlayer.getDuration();
+
+                        // ===== 1. НАСТРОЙКА СЛАЙДЕРА =====
+                        if (lastPlayedPosition >= 0 && lastPlayedPosition <= duration) {
+                            b.sliderVert.setValueTo((float) duration);
+                            b.sliderVert.setValue((float) lastPlayedPosition);
+
+                            updateCurrentTime((int) lastPlayedPosition);
+                            updateTotalTime((int) duration);
+                        }
+
+                        // ===== 2. ИНИЦИАЛИЗАЦИЯ ТАЙМИНГОВ СУР =====
+                        if (suraTimingsMs == null || suraTimingsMs.length == 0) {
+
+                            // ⚠️ Жду твой список таймингов сур
+
+                        }
+
+                        // ===== ⭐ 3. ИНИЦИАЛИЗАЦИЯ ТАЙМИНГОВ СТРАНИЦ =====
+                        if (pageTimingsMs == null || pageTimingsMs.length == 0) {
+
+                            // ⭐ Автоматический список для 604 страниц по +5 секунд
+                            pageTimingsMs = new int[] {
+                                    0,
+                                    45000,
+                                    212300,
+                                    (int) duration
+                            };
+
+
+
+                        }
+
+                        // ===== 4. ОБНОВИТЬ ВЕРТИКАЛЬНЫЕ ДЕЛЕНИЯ =====
+                        SuraTicksView ticks = findViewById(R.id.suraTicks);
+                        if (ticks != null) {
+
+                            // ⭐ если выбраны СУРЫ – ставим деления по суре
+                            if (b.suraRadioButton.isChecked() && suraTimingsMs != null) {
+                                List<Integer> timingsList = new ArrayList<>();
+                                for (int t : suraTimingsMs) timingsList.add(t);
+                                ticks.setTimings(timingsList, (int) duration);
+                            }
+
+                            // ⭐ если выбраны СТРАНИЦЫ – ставим деления по страницам
+                            if (b.pageRadioButton.isChecked() && pageTimingsMs != null) {
+                                List<Integer> timingsList = new ArrayList<>();
+                                for (int t : pageTimingsMs) timingsList.add(t);
+                                ticks.setTimings(timingsList, (int) duration);
+                            }
+                        }
+
+                        // ===== 5. ПОДСВЕТКА ТЕКУЩЕЙ СУРЫ ИЛИ СТРАНИЦЫ =====
+                        int currentMs = (int) exoPlayer.getCurrentPosition();
+
+                        if (b.suraRadioButton.isChecked()) {
+                            highlightCurrentSura(currentMs);
+                        }
+
+                        if (b.pageRadioButton.isChecked()) {
+                            highlightCurrentPage(currentMs);
+                        }
+
+                        // ===== 6. СИНХРОНИЗАЦИЯ ИКОНКИ ИГРЫ =====
+                        if (exoPlayer.isPlaying()) {
+                            updatePlayButtonIcon();
+                        }
+                    }
+                }
+            });
+
+
+        }
+    }
+
+    private void initContent() {
+        sures = new String[] {
+                "Сура 1. Аль-Фатиха\nОткрывающая",
+                "Сура 2. Аль-Бакара\nКорова",
+                "Сура 3. Али Имран\nСемейство Имрана",
+                "Сура 4. Ан-Ниса\nЖенщины",
+                "Сура 5. Аль-Маида\nТрапеза",
+                "Сура 6. Аль-Ан'ам\nСкот",
+                "Сура 7. Аль-А'раф\nПреграды",
+                "Сура 8. Аль-Анфаль\nТрофеи",
+                "Сура 9. Ат-Тауба\nПокаяние",
+                "Сура 10. Юнус\nЮнус (Иона)",
+                "Сура 11. Худ\nХуд",
+                "Сура 12. Йусуф\nЙусуф (Иосиф)",
+                "Сура 13. Ар-Ра'д\nГром",
+                "Сура 14. Ибрахим\nИбрахим (Авраам)",
+                "Сура 15. Аль-Хиджр\nКаменное плато",
+                "Сура 16. Ан-Нахль\nПчелы",
+                "Сура 17. Аль-Исра\nНочной перенос",
+                "Сура 18. Аль-Кахф\nПещера",
+                "Сура 19. Марьям\nМарьям (Мария)",
+                "Сура 20. Та-Ха\nТа-Ха",
+                "Сура 21. Аль-Анбия\nПророки",
+                "Сура 22. Аль-Хадж\nПаломничество",
+                "Сура 23. Аль-Му'минун\nВерующие",
+                "Сура 24. Ан-Нур\nСвет",
+                "Сура 25. Аль-Фуркан\nРазличение",
+                "Сура 26. Аш-Шуара\nПоэты",
+                "Сура 27. Ан-Намль\nМуравьи",
+                "Сура 28. Аль-Касас\nРассказы",
+                "Сура 29. Аль-Анкабут\nПаук",
+                "Сура 30. Ар-Рум\nРимляне",
+                "Сура 31. Лукман\nЛукман",
+                "Сура 32. Ас-Саджда\nПоклон",
+                "Сура 33. Аль-Ахзаб\nСоюзники",
+                "Сура 34. Саба\nСабейцы",
+                "Сура 35. Фатыр\nТворец",
+                "Сура 36. Йа Син\nЙа Син",
+                "Сура 37. Ас-Саффат\nВыстраивающиеся в ряды",
+                "Сура 38. Сад\nБуква Сад",
+                "Сура 39. Аз-Зумар\nТолпы",
+                "Сура 40. Гафир\nПрощающий",
+                "Сура 41. Фуссылят\nРазъяснены",
+                "Сура 42. Аш-Шура\nСовет",
+                "Сура 43. Аз-Зухруф\nУкрашения",
+                "Сура 44. Ад-Духан\nДым",
+                "Сура 45. Аль-Джасия\nКоленопреклоненные",
+                "Сура 46. Аль-Ахкаф\nДюны",
+                "Сура 47. Мухаммад\nМухаммад",
+                "Сура 48. Аль-Фатх\nПобеда",
+                "Сура 49. Аль-Худжурат\nКомнаты",
+                "Сура 50. Каф\nБуква Каф",
+                "Сура 51. Аль-Дариат\nРассеивающие",
+                "Сура 52. Ат-Тур\nГора",
+                "Сура 53. Ан-Наджм\nЗвезда",
+                "Сура 54. Аль-Камар\nЛуна",
+                "Сура 55. Ар-Рахман\nМилостивый",
+                "Сура 56. Аль-Вакы'а\nНеотвратимое событие",
+                "Сура 57. Аль-Хадид\nЖелезо",
+                "Сура 58. Аль-Муджадала\nПрепирающаяся",
+                "Сура 59. Аль-Хашр\nСбор",
+                "Сура 60. Аль-Мумтахина\nИспытуемая",
+                "Сура 61. Ас-Сафф\nРяд",
+                "Сура 62. Аль-Джуму'а\nПятница",
+                "Сура 63. Аль-Мунафикун\nЛицемеры",
+                "Сура 64. Ат-Тагабун\nРаскрытие самообмана",
+                "Сура 65. Ат-Талак\nРазвод",
+                "Сура 66. Ат-Тахрим\nЗапрещение",
+                "Сура 67. Аль-Мульк\nВласть",
+                "Сура 68. Аль-Калам\nПисьменная трость",
+                "Сура 69. Аль-Хакка\nНеизбежное",
+                "Сура 70. Аль-Ма'аридж\nСтупени",
+                "Сура 71. Нух\nНух (Ной)",
+                "Сура 72. Аль-Джинн\nДжинны",
+                "Сура 73. Аль-Муззаммиль\nЗакутавшийся",
+                "Сура 74. Аль-Муддассир\nЗавернувшийся",
+                "Сура 75. Аль-Кыяма\nВоскресение",
+                "Сура 76. Аль-Инсан\nЧеловек",
+                "Сура 77. Аль-Мурсалят\nПосланные",
+                "Сура 78. Ан-Наба\nВесть",
+                "Сура 79. Ан-Назиат\nВырывающие",
+                "Сура 80. Абаса\nНахмурившийся",
+                "Сура 81. Ат-Таквир\nСкручивание",
+                "Сура 82. Аль-Инфитар\nРаскалывание",
+                "Сура 83. Аль-Мутаффифин\nОбвешивающие",
+                "Сура 84. Аль-Иншикак\nРазверзнется",
+                "Сура 85. Аль-Бурудж\nСозвездия",
+                "Сура 86. Ат-Тарик\nНочной путник",
+                "Сура 87. Аль-А'ля\nВысочайший",
+                "Сура 88. Аль-Гашия\nПокрывающее",
+                "Сура 89. Аль-Фаджр\nЗаря",
+                "Сура 90. Аль-Баляд\nГород",
+                "Сура 91. Аш-Шамс\nСолнце",
+                "Сура 92. Аль-Ляйл\nНочь",
+                "Сура 93. Ад-Духа\nУтро",
+                "Сура 94. Аш-Шарх\nРаскрытие",
+                "Сура 95. Ат-Тин\nИнжир",
+                "Сура 96. Аль-'Аляк\nСгусток крови",
+                "Сура 97. Аль-Кадр\nНочь предопределения",
+                "Сура 98. Аль-Баййина\nЯсное знамение",
+                "Сура 99. Аз-Зальзаля\nЗемлетрясение",
+                "Сура 100. Аль-'Адият\nСкачущие",
+                "Сура 101. Аль-Кари'а\nВеликое бедствие",
+                "Сура 102. Ат-Такасур\nСтрасть к приумножению",
+                "Сура 103. Аль-'Аср\nПредвечернее время",
+                "Сура 104. Аль-Хумаза\nХулитель",
+                "Сура 105. Аль-Филь\nСлон",
+                "Сура 106. Курайш\nКурайшиты",
+                "Сура 107. Аль-Ма'ун\nМелочь",
+                "Сура 108. Аль-Кяусар\nИзобилие",
+                "Сура 109. Аль-Кяфирун\nНеверующие",
+                "Сура 110. Ан-Наср\nПобеда",
+                "Сура 111. Аль-Ляхаб\nПальмовые волокна",
+                "Сура 112. Аль-Ихляс\nИскренность",
+                "Сура 113. Аль-Фаляк\nРассвет",
+                "Сура 114. Ан-Нас\nЛюди"
+        };
+    }
+
+    private void highlightCurrentSura(int currentMs) {
+        if (suraTimingsMs == null) return;
+
+        int index = 0;
+
+        // Находим, какой тайминг подходит под текущую позицию
+        for (int i = 0; i < suraTimingsMs.length - 1; i++) {
+            if (currentMs >= suraTimingsMs[i] && currentMs < suraTimingsMs[i + 1]) {
+                index = i;
+                break;
+            }
+        }
+
+        if (suraAdapter != null) {
+            suraAdapter.setCurrentPlaying(index);
+        }
+    }
+
+
+    private void initMap(DrawerQuranContentAdapter drawerQuranContentAdapter) {
+        suresName.clear(); // Очищаем старые данные
+        for (int i = 0; i < 114; i++) {
+            QuranItemContent sure = new QuranItemContent(sures[i], numPageSures[i]);
+            suresName.add(sure);
+        }
+        drawerQuranContentAdapter.updateNumPages(numPageSures);
+
+        drawerQuranContentAdapter = new DrawerQuranContentAdapter(
+                this, suresName, viewPager, numPageSures
+        );
+        drawerQuranContentAdapter.notifyDataSetChanged(); // Уведомляем адаптер
+    }
+
+
+
+
+    private void initContentJuzes() {
+        juzes = new String[]{
+                "Джуз 1 \n (1:1) - (2:141)",
+                "Джуз 2 \n (2:142) - (2:252)",
+                "Джуз 3 \n (2:253) - (3:92)",
+                "Джуз 4 \n (3:93) - (4:23)",
+                "Джуз 5 \n (4:24) - (4:147)",
+                "Джуз 6 \n (4:148) - (5:81)",
+                "Джуз 7 \n (5:82) - (6:110)",
+                "Джуз 8 \n (6:111) - (7:87)",
+                "Джуз 9 \n (7:88) - (8:40)",
+                "Джуз 10 \n (8:41) - (9:92)",
+                "Джуз 11 \n (9:93) - (11:5)",
+                "Джуз 12 \n (11:6) - (12:52)",
+                "Джуз 13 \n (12:53) - (14:52)",
+                "Джуз 14 \n (15:1) - (16:128)",
+                "Джуз 15 \n (17:1) - (18:74)",
+                "Джуз 16 \n (18:75) - (20:135)",
+                "Джуз 17 \n (21:1) - (22:78)",
+                "Джуз 18 \n (23:1) - (25:20)",
+                "Джуз 19 \n (25:21) - (27:55)",
+                "Джуз 20 \n (27:56) - (29:45)",
+                "Джуз 21 \n (29:46) - (33:30)",
+                "Джуз 22 \n (33:31) - (36:27)",
+                "Джуз 23 \n (36:28) - (39:31)",
+                "Джуз 24 \n (39:32) - (41:46)",
+                "Джуз 25 \n (41:47) - (45:37)",
+                "Джуз 26 \n (46:1) - (51:30)",
+                "Джуз 27 \n (51:31) - (57:29)",
+                "Джуз 28 \n (58:1) - (66:12)",
+                "Джуз 29 \n (67:1) - (77:50)",
+                "Джуз 30 \n (78:1) - (114:6)"
+        };
+    }
+
+    /*private void highlightCurrentPage(int currentMs) {
+        if (pageTimingsMs == null || pageTimingsMs.length == 0 || pageAdapter == null) {
+            Log.d("HIGHLIGHT", "Недостаточно данных для подсветки");
+            return;
+        }
+
+        Log.d("HIGHLIGHT", "Поиск страницы для времени: " + currentMs + "мс");
+
+        // Если время меньше первого тайминга - это страница 1
+        if (currentMs < pageTimingsMs[0]) {
+            Log.d("HIGHLIGHT", "Время меньше первого тайминга -> страница 1");
+            pageAdapter.setCurrentPlaying(1);
+            return;
+        }
+
+        int pageNumber = 1;
+
+        // Ищем последний тайминг, который МЕНЬШЕ ИЛИ РАВЕН текущему времени
+        for (int i = 0; i < pageTimingsMs.length; i++) {
+            Log.d("HIGHLIGHT", "Сравнение: время " + currentMs + " >= pageTimingsMs[" + i + "]=" + pageTimingsMs[i] + " ? " + (currentMs >= pageTimingsMs[i]));
+
+            if (currentMs >= pageTimingsMs[i]) {
+                pageNumber = i + 1; // i=0 -> страница 1, i=1 -> страница 2
+            } else {
+                break;
+            }
+        }
+
+        Log.d("HIGHLIGHT", "Определена страница: " + pageNumber);
+        pageAdapter.setCurrentPlaying(pageNumber);
+    }*/
+
+    private void highlightCurrentPage(int currentMs) {
+        if (pageTimingsMs == null || pageAdapter == null) return;
+
+        Log.d("HIGHLIGHT_DEBUG", "Таймингов всего: " + pageTimingsMs.length);
+        Log.d("HIGHLIGHT_DEBUG", "Текущее время: " + currentMs + "мс");
+
+        int pageNumber = 1;
+
+        // Если время меньше первого тайминга - страница 1
+        if (currentMs < pageTimingsMs[0]) {
+            pageNumber = 1;
+        }
+        // Если время больше последнего тайминга - используем пропорциональное вычисление
+        else if (currentMs >= pageTimingsMs[pageTimingsMs.length - 1]) {
+            long lastTiming = pageTimingsMs[pageTimingsMs.length - 1];
+            long totalDuration = exoPlayer.getDuration();
+
+            // Вычисляем примерную страницу пропорционально
+            double progress = (double) (currentMs - lastTiming) / (totalDuration - lastTiming);
+            int remainingPages = 604 - pageTimingsMs.length;
+            pageNumber = pageTimingsMs.length + (int) (progress * remainingPages);
+
+            // Ограничиваем максимальной страницей
+            pageNumber = Math.min(pageNumber, 604);
+
+            Log.d("HIGHLIGHT_DEBUG", "Время после последнего тайминга. Вычисленная страница: " + pageNumber);
+        }
+        // Ищем между таймингами
+        else {
+            for (int i = 0; i < pageTimingsMs.length - 1; i++) {
+                if (currentMs >= pageTimingsMs[i] && currentMs < pageTimingsMs[i + 1]) {
+                    pageNumber = i + 1;
+                    break;
+                }
+            }
+        }
+
+        Log.d("HIGHLIGHT_DEBUG", "Финальная страница: " + pageNumber);
+
+        if (b.pageRadioButton.isChecked()) {
+            pageAdapter.setCurrentPlaying(pageNumber);
+        }
+    }
+
+
+
+
+
+    private void initMapJuzes(DrawerQuranContentAdapter drawerQuranContentAdapter) {
+        suresName.clear(); // Очищаем старые данные
+        for (int i = 0; i < 30; i++) {
+            QuranItemContent sure = new QuranItemContent(juzes[i], numPageJuzes[i]);
+            suresName.add(sure);
+        }
+        drawerQuranContentAdapter.updateNumPages(numPageJuzes);
+
+        drawerQuranContentAdapter = new DrawerQuranContentAdapter(
+                this, suresName, viewPager, numPageJuzes
+        );
+        drawerQuranContentAdapter.notifyDataSetChanged();
+    }
+
+    private void initContentHizbs() {
+        hizbs = new String[]{
+                "Хизб 1 \n (1:1) — (2:74)",
+                "Хизб 2 \n (2:75) — (2:141)",
+                "Хизб 3 \n (2:142) — (2:202)",
+                "Хизб 4 \n (2:203) — (2:252)",
+                "Хизб 5 \n (2:253) — (3:14)",
+                "Хизб 6 \n (3:15) — (3:92)",
+                "Хизб 7 \n (3:93) — (3:170)",
+                "Хизб 8 \n (3:171) — (4:23)",
+                "Хизб 9 \n (4:24) — (4:87)",
+                "Хизб 10 \n (4:88) — (4:147)",
+                "Хизб 11 \n (4:148) — (5:26)",
+                "Хизб 12 \n (5:27) — (5:81)",
+                "Хизб 13 \n (5:82) — (6:35)",
+                "Хизб 14 \n (6:36) — (6:110)",
+                "Хизб 15 \n (6:111) — (6:165)",
+                "Хизб 16 \n (7:1) — (7:87)",
+                "Хизб 17 \n (7:88) — (7:170)",
+                "Хизб 18 \n (7:171) — (8:40)",
+                "Хизб 19 \n (8:41) — (9:33)",
+                "Хизб 20 \n (9:34) — (9:92)",
+                "Хизб 21 \n (9:93) — (10:25)",
+                "Хизб 22 \n (10:26) — (11:5)",
+                "Хизб 23 \n (11:6) — (11:83)",
+                "Хизб 24 \n (11:84) — (12:52)",
+                "Хизб 25 \n (12:53) — (13:18)",
+                "Хизб 26 \n (13:19) — (14:52)",
+                "Хизб 27 \n (15:1) — (16:50)",
+                "Хизб 28 \n (16:51) — (16:128)",
+                "Хизб 29 \n (17:1) — (17:98)",
+                "Хизб 30 \n (17:99) — (18:74)",
+                "Хизб 31 \n (18:75) — (19:98)",
+                "Хизб 32 \n (20:1) — (20:135)",
+                "Хизб 33 \n (21:1) — (21:112)",
+                "Хизб 34 \n (22:1) — (22:78)",
+                "Хизб 35 \n (23:1) — (24:20)",
+                "Хизб 36 \n (24:21) — (25:20)",
+                "Хизб 37 \n (25:21) — (26:110)",
+                "Хизб 38 \n (26:111) — (27:55)",
+                "Хизб 39 \n (27:56) — (28:50)",
+                "Хизб 40 \n (28:51) — (29:45)",
+                "Хизб 41 \n (29:46) — (31:21)",
+                "Хизб 42 \n (31:22) — (33:30)",
+                "Хизб 43 \n (33:31) — (34:23)",
+                "Хизб 44 \n (34:24) — (36:27)",
+                "Хизб 45 \n (36:28) — (37:144)",
+                "Хизб 46 \n (37:145) — (39:31)",
+                "Хизб 47 \n (39:32) — (40:40)",
+                "Хизб 48 \n (40:41) — (41:46)",
+                "Хизб 49 \n (41:47) — (43:23)",
+                "Хизб 50 \n (43:24) — (45:37)",
+                "Хизб 51 \n (46:1) — (48:17)",
+                "Хизб 52 \n (48:18) — (51:30)",
+                "Хизб 53 \n (51:31) — (54:55)",
+                "Хизб 54 \n (55:1) — (57:29)",
+                "Хизб 55 \n (58:1) — (61:14)",
+                "Хизб 56 \n (62:1) — (66:12)",
+                "Хизб 57 \n (67:1) — (71:28)",
+                "Хизб 58 \n (72:1) — (77:50)",
+                "Хизб 59 \n (78:1) — (86:17)",
+                "Хизб 60 \n (87:1) — (114:6)"
+        };
+    }
+
+    private void initMapHizbs(DrawerQuranContentAdapter drawerQuranContentAdapter) {
+        suresName.clear(); // Очищаем старые данные
+        for (int i = 0; i < 60; i++) {
+            QuranItemContent hizb = new QuranItemContent(hizbs[i], numPageHizbs[i]); // Замените numPageHizbs на ваш массив с номерами страниц
+            suresName.add(hizb);
+        }
+        drawerQuranContentAdapter.updateNumPages(numPageHizbs);
+
+        drawerQuranContentAdapter = new DrawerQuranContentAdapter(
+                this, suresName, viewPager, numPageHizbs
+        );
+        drawerQuranContentAdapter.notifyDataSetChanged();
+    }
+
+    private void initContentManziles() {
+        manziles = new String[]{
+                "Манзиль 1 \n (1:1) — (3:200)",
+                "Манзиль 2 \n (4:1) — (6:165)",
+                "Манзиль 3 \n (7:1) — (11:117)",
+                "Манзиль 4 \n (12:1) — (20:135)",
+                "Манзиль 5 \n (21:1) — (29:63)",
+                "Манзиль 6 \n (30:1) — (45:32)",
+                "Манзиль 7 \n (46:1) — (114:6)"
+        };
+    }
+
+    private void initMapManziles(DrawerQuranContentAdapter drawerQuranContentAdapter) {
+        suresName.clear(); // Очищаем старые данные
+        for (int i = 0; i < 7; i++) {
+            QuranItemContent sure = new QuranItemContent(manziles[i], numPageManziles[i]);
+            suresName.add(sure);
+        }
+        drawerQuranContentAdapter.updateNumPages(numPageManziles);
+
+        drawerQuranContentAdapter = new DrawerQuranContentAdapter(
+                this, suresName, viewPager, numPageManziles
+        );
+        drawerQuranContentAdapter.notifyDataSetChanged();
+    }
+
+    private void updateBookmarkIcon(int page, MenuItem menuItem) {
+        try {
+            // Проверка наличия закладки на текущей странице
+            boolean isBookmarked = bookmarkAdapter.isBookmarked(page);
+
+            if (isBookmarked) {
+                // Если на текущей странице есть закладка, получаем её цвет
+                Bookmark bookmark = bookmarkAdapter.getBookmark(page);
+                int bookmarkColor = bookmark.getFillColor();
+
+                // Устанавливаем иконку bookmark_full и изменяем её цвет
+                menuItem.setIcon(R.drawable.bookmark_full);
+                IconColorUtil.setIconColor(menuItem, bookmarkColor);
+            } else {
+                // Если закладки нет, устанавливаем иконку bookmark_empty (без цвета)
+                menuItem.setIcon(R.drawable.bookmark_empty);
+                IconColorUtil.setIconColor(menuItem, Color.WHITE); // Или любой другой цвет по умолчанию
+            }
+        } catch (Exception e) {
+            // Вывод исключения в лог для отладки
+            e.printStackTrace();
+        }
+    }
+
+    public Menu getToolbarMenu() {
+        return b.toolbar.getMenu();
+    }
+
+    // Метод для сохранения последней страницы в SharedPreferences
+    private void saveLastPage(int lastPage) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(LAST_PAGE_KEY, lastPage);
+        editor.apply();
+    }
+
+    // Метод для загрузки последней страницы из SharedPreferences
+    private int loadLastPage() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(LAST_PAGE_KEY, 0); // По умолчанию начнем с 0 страницы
+    }
+
+    private void copyJSONFromAssets() {
+        AssetManager assetManager = getAssets();
+        File outFile = new File(getFilesDir(), "bookmarks.json");
+
+        // Проверяем, существует ли файл уже во внутреннем хранилище
+        if (!outFile.exists()) {
+            try {
+                InputStream in = assetManager.open("bookmarks.json");
+                OutputStream out = new FileOutputStream(outFile);
+
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, length);
+                }
+
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    private void prepareFile(String surahFileName) {
+        try {
+            // Создаем URI для ассета
+            Uri assetUri = Uri.parse("asset:///quran/" + surahFileName);
+
+            // Создаем MediaItem с использованием URI
+            MediaItem mediaItem = MediaItem.fromUri(assetUri);
+
+            exoPlayer.clearMediaItems();
+
+            // Устанавливаем MediaItem в ExoPlayer
+            exoPlayer.setMediaItem(mediaItem);
+
+            // Подготавливаем плеер
+            exoPlayer.prepare();
+
+            // Начинаем воспроизведение
+            //exoPlayer.play();
+
+            // Устанавливаем повторение воспроизведения
+            exoPlayer.setRepeatMode(ExoPlayer.REPEAT_MODE_ONE);
+
+        } catch (Exception e) {
+            Log.e("FullPlayer", "Ошибка загрузки файла суры: " + surahFileName, e);
+        }
+    }
+
+    private void updatePlayButtonIcon() {
+        if (exoPlayer.isPlaying()) {
+            b.sheetMidButton.setIconResource(R.drawable.pause_24px);
+        } else {
+            b.sheetMidButton.setIconResource(R.drawable.play_arrow_24px);
+        }
+    }
+
+    private void updateCurrentTime(int currentPosition) {
+        int minutes = currentPosition / 60000;
+        int seconds = (currentPosition % 60000) / 1000;
+        String currentTime = String.format("%02d:%02d", minutes, seconds);
+        b.position.setText(currentTime);
+    }
+
+    private void updateTotalTime(int duration) {
+        int minutes = duration / 60000;
+        int seconds = (duration % 60000) / 1000;
+        String totalTime = String.format("%02d:%02d", minutes, seconds);
+        b.duration.setText(totalTime);
+    }
+
+    private void startUpdatingProgress() {
+        handler.post(updateProgressTask);
+    }
+
+    private void stopUpdatingProgress() {
+        handler.removeCallbacks(updateProgressTask);
+    }
+
+    private final Runnable updateProgressTask = new Runnable() {
+        @Override
+        public void run() {
+            if (exoPlayer != null && exoPlayer.isPlaying()) {
+                int currentPosition = (int) exoPlayer.getCurrentPosition();
+                int totalDuration = (int) exoPlayer.getDuration();
+
+                if (totalDuration > 0) {
+                    if (currentPosition > totalDuration) {
+                        currentPosition = totalDuration;
+                    }
+
+                    b.sliderVert.setValue(currentPosition);
+                    updateCurrentTime(currentPosition);
+                }
+
+                handler.postDelayed(this, 100); // Обновление каждые 100 мс
+            }
+        }
+    };
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.action_add_bookmark:
+                int currentPosition = bookmarkAdapter.getCurrentPosition();
+                boolean isBookmarked = bookmarkAdapter.isBookmarked(currentPosition);
+
+                if (isBookmarked) {
+                    // Если страница уже в закладках, удалите закладку
+                    bookmarkAdapter.removeBookmark(currentPosition);
+                    // Установите иконку bookmark_empty
+                    item.setIcon(R.drawable.bookmark_empty);
+                } else {
+                    // Если страница не в закладках, показываем кастомный PopupWindow для выбора цвета
+                    showBookmarkColorPopup(item, currentPosition);
+                }
+
+                bookmarkAdapter.notifyDataSetChanged();
+                updateBookmarkIconAfterDrawerClose(item);
+                return true;
+
+            case R.id.action_view_bookmarks:
+                b.drawerQuranLayout.closeDrawer(Gravity.LEFT);
+                b.drawerQuranLayout.openDrawer(Gravity.RIGHT);
+
+                // Обновляем иконку закладки после закрытия Drawer
+                // Получаем MenuItem по ID и обновляем иконку закладки после закрытия Drawer
+                MenuItem addBookmarkItem = b.toolbar.getMenu().findItem(R.id.action_add_bookmark);
+                if (addBookmarkItem != null) {
+                    updateBookmarkIconAfterDrawerClose(addBookmarkItem);
+                }
+                return true;
+
+            case R.id.list_content:
+                b.drawerQuranLayout.closeDrawer(Gravity.RIGHT);
+                b.drawerQuranLayout.openDrawer(Gravity.LEFT);
+
+                // Обновляем иконку закладки после закрытия Drawer
+                // Получаем MenuItem по ID и обновляем иконку закладки после закрытия Drawer
+                MenuItem addBookmarkItem2 = b.toolbar.getMenu().findItem(R.id.action_add_bookmark);
+                if (addBookmarkItem2 != null) {
+                    updateBookmarkIconAfterDrawerClose(addBookmarkItem2);
+                }
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    // Метод для обновления иконки закладки после закрытия Drawer
+    private void updateBookmarkIconAfterDrawerClose(MenuItem menuItem) {
+        int currentPosition = bookmarkAdapter.getCurrentPosition();
+        boolean isBookmarked = bookmarkAdapter.isBookmarked(currentPosition);
+
+        if (isBookmarked) {
+            // Если закладка есть, получаем её цвет
+            Bookmark bookmark = bookmarkAdapter.getBookmark(currentPosition);
+            int bookmarkColor = bookmark.getFillColor();
+
+            // Устанавливаем иконку в зависимости от цвета закладки
+            int iconResId = getBookmarkIconByColor(bookmarkColor);
+            menuItem.setIcon(iconResId);
+        } else {
+            // Если закладки нет, устанавливаем иконку bookmark_empty
+            menuItem.setIcon(R.drawable.bookmark_empty);
+        }
+    }
+
+
+    // Метод для отображения PopupMenu с выбором цвета закладки
+    private void showBookmarkColorPopupText(MenuItem menuItem, int currentPosition) {
+        // Создаем PopupMenu
+        PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.action_add_bookmark));
+        popupMenu.getMenuInflater().inflate(R.menu.bookmark_color_menu, popupMenu.getMenu());
+
+        // Обработка выбора цвета
+        popupMenu.setOnMenuItemClickListener(item -> {
+            int colorId = item.getItemId();
+            int selectedColorResId = getColorResourceId(colorId); // Получаем ресурс иконки
+            int selectedColor = getColorFromResourceId(colorId); // Получаем цвет (если нужно)
+
+            // Устанавливаем выбранную иконку на Toolbar
+            menuItem.setIcon(selectedColorResId);
+
+            // Добавляем закладку с выбранным цветом
+            Bookmark bookmark = new Bookmark(currentPosition, selectedColor);
+            bookmarkAdapter.addBookmark(bookmark);
+
+            // Сохраняем закладки (если у вас есть метод saveBookmarks)
+            bookmarkAdapter.saveBookmarks();
+
+            return true;
+        });
+
+        // Показываем PopupMenu
+        popupMenu.show();
+    }
+
+    // Метод для получения ресурса иконки по ID
+    private int getColorResourceId(int colorId) {
+        switch (colorId) {
+            case R.id.color_white:
+                return R.drawable.bookmark_full;
+            case R.id.color_red:
+                return R.drawable.bookmark_full_red;
+            case R.id.color_green:
+                return R.drawable.bookmark_full_green;
+            case R.id.color_yellow:
+                return R.drawable.bookmark_full_yellow;
+            case R.id.color_blue:
+                return R.drawable.bookmark_full_blue;
+            case R.id.color_black:
+                return R.drawable.bookmark_full_black;
+            case R.id.color_fiol:
+                return R.drawable.bookmark_full_fiol;
+            case R.id.color_orange:
+                return R.drawable.bookmark_full_orange;
+            case R.id.color_bir:
+                return R.drawable.bookmark_full_bir;
+            default:
+                return R.drawable.bookmark_full; // Иконка по умолчанию
+        }
+    }
+
+    private void showBookmarkColorPopup(MenuItem menuItem, int currentPosition) {
+        // Загружаем макет для PopupWindow
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_bookmark_colors, null);
+
+        // Настраиваем HorizontalScrollView
+        HorizontalScrollView scrollView = new HorizontalScrollView(this);
+        scrollView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        scrollView.setHorizontalScrollBarEnabled(true);
+        scrollView.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+
+        // Добавляем наш контент в ScrollView
+        scrollView.addView(popupView);
+
+        // Создаем PopupWindow с фиксированной шириной для ограничения области прокрутки
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int maxPopupWidth = (int) (screenWidth * 0.8); // 80% ширины экрана
+
+        PopupWindow popupWindow = new PopupWindow(
+                scrollView,
+                maxPopupWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+        );
+
+        // Устанавливаем фон для PopupWindow
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+        popupWindow.setElevation(20);
+        popupWindow.setOutsideTouchable(true);
+
+        // Обработка нажатий на карточки с проверкой на null
+        int[][] colorConfigs = {
+                {R.id.color_red, 0xFFC40A0A, R.drawable.bookmark_full_red},
+                {R.id.color_black, Color.BLACK, R.drawable.bookmark_full_black},
+                {R.id.color_white, Color.WHITE, R.drawable.bookmark_full},
+                {R.id.color_green, 0xFF66FF00, R.drawable.bookmark_full_green},
+                {R.id.color_fiol, 0xFF8A2BE2, R.drawable.bookmark_full_fiol}, // Фиолетовый
+                {R.id.color_pink, 0xFFFF00FF, R.drawable.bookmark_full_pink}, // Розовый (новый)
+                {R.id.color_yellow, 0xFFF8FF3D, R.drawable.bookmark_full_yellow},
+                {R.id.color_orange, 0xFFFFA500, R.drawable.bookmark_full_orange},
+                {R.id.color_bir, 0xFF40E0D0, R.drawable.bookmark_full_bir},
+                {R.id.color_blue, 0xFF0077FF, R.drawable.bookmark_full_blue}
+        };
+
+        for (int[] config : colorConfigs) {
+            View colorView = popupView.findViewById(config[0]);
+            if (colorView != null) {
+                colorView.setOnClickListener(v -> {
+                    handleColorSelection(menuItem, currentPosition, config[1], config[2]);
+                    popupWindow.dismiss();
+                });
+            } else {
+                // Логируем какой элемент не найден
+                Log.e("BookmarkPopup", "View not found with ID: " + config[0]);
+            }
+        }
+
+        // Принудительно измеряем размеры контента
+        popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int contentWidth = popupView.getMeasuredWidth();
+        int contentHeight = popupView.getMeasuredHeight();
+
+        // Если контент шире максимальной ширины, включаем прокрутку
+        if (contentWidth > maxPopupWidth) {
+            scrollView.setHorizontalScrollBarEnabled(true);
+        } else {
+            scrollView.setHorizontalScrollBarEnabled(false);
+        }
+
+        // Показываем PopupWindow относительно Toolbar
+        View anchorView = findViewById(R.id.toolbar);
+        if (anchorView != null) {
+            // Рассчитываем позицию для центрирования
+            int anchorWidth = anchorView.getWidth();
+            int xOffset = (anchorWidth - Math.min(maxPopupWidth, contentWidth)) / 2;
+
+            // Показываем popup с правильным смещением
+            popupWindow.showAsDropDown(anchorView, xOffset, 0);
+
+            // Прокручиваем к началу после показа
+            scrollView.post(() -> scrollView.scrollTo(0, 0));
+        } else {
+            // Fallback: показываем по центру экрана
+            popupWindow.showAtLocation(scrollView, Gravity.CENTER, 0, 0);
+        }
+
+        // Добавляем обработчик автоматического скрытия при клике вне области
+        scrollView.setOnTouchListener(new View.OnTouchListener() {
+            private Rect popupRect;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    if (popupRect == null) {
+                        popupRect = new Rect();
+                        scrollView.getGlobalVisibleRect(popupRect);
+                    }
+
+                    int x = (int) event.getRawX();
+                    int y = (int) event.getRawY();
+
+                    if (!popupRect.contains(x, y)) {
+                        popupWindow.dismiss();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+    }
+
+    // Вспомогательный метод для конвертации dp в px
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
+    }
+
+    // Метод обработки выбора цвета (убедитесь, что он есть)
+    private void handleColorSelection(MenuItem menuItem, int currentPosition, int color, int iconResId) {
+        menuItem.setIcon(iconResId);
+        Bookmark bookmark = new Bookmark(currentPosition, color);
+        bookmarkAdapter.addBookmark(bookmark);
+        bookmarkAdapter.saveBookmarks();
+        bookmarkAdapter.notifyDataSetChanged();
+    }
+
+
+    private int getColorFromResourceId(int colorId) {
+        switch (colorId) {
+            case R.id.color_white:
+                return Color.WHITE;
+            case R.id.color_red:
+                return 0xFFC40A0A; // Красный
+            case R.id.color_green:
+                return 0xFF66FF00; // Зеленый
+            case R.id.color_yellow:
+                return 0xFFF8FF3D; // Желтый
+            case R.id.color_blue:
+                return 0xFF0077FF; // Синий
+            case R.id.color_black:
+                return Color.BLACK;
+            case R.id.color_fiol:
+                return 0xFF8A2BE2; // Фиолетовый
+            case R.id.color_pink:
+                return 0xFFFF00FF; // Розовый (новый)
+            case R.id.color_orange:
+                return 0xFFFFA500; // Оранжевый
+            case R.id.color_bir:
+                return 0xFF40E0D0; // Бирюзовый
+            default:
+                return Color.WHITE; // Цвет по умолчанию
+        }
+    }
+
+    private String loadTextFromFile(String directory, String fileName) {
+        StringBuilder text = new StringBuilder();
+        InputStream is = null;
+        BufferedReader br = null;
+
+        try {
+            // Открытие файла из указанной директории
+            is = getAssets().open(directory + "/" + fileName);
+            br = new BufferedReader(new InputStreamReader(is));
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                text.append(line).append('\n');
+            }
+
+        } catch (IOException e) {
+            Log.e("loadTextFromFile", "Ошибка при открытии файла: " + fileName, e);
+        } finally {
+            // Закрытие потоков в блоке finally
+            try {
+                if (br != null) {
+                    br.close();
+                }
+                if (is != null) {
+                    is.close();
+                }
+            } catch (IOException e) {
+                Log.e("loadTextFromFile", "Ошибка при закрытии потоков: " + fileName, e);
+            }
+        }
+
+        return text.toString();
+    }
+
+    // Метод для загрузки текста тафсира
+    private void loadTafsirText() {
+        //b.tafsirText.setText(loadTextFromFile(selectedTafsirDirectory, bookmarkAdapter.getCurrentPosition() + 1 + ".txt"));
+    }
+    private String loadTextFromFile(String fileName) {
+        StringBuilder text = new StringBuilder();
+        InputStream is = null;
+        BufferedReader br = null;
+
+        try {
+            // Открытие файла из папки assets
+            is = getAssets().open("tafsir_abu_ali_al_ashary/" + fileName);
+            br = new BufferedReader(new InputStreamReader(is));
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                text.append(line).append('\n');
+            }
+
+        } catch (IOException e) {
+            Log.e("loadTextFromFile", "Ошибка при открытии файла: " + fileName, e);
+        } finally {
+            // Закрытие потоков в блоке finally
+            try {
+                if (br != null) {
+                    br.close();
+                }
+                if (is != null) {
+                    is.close();
+                }
+            } catch (IOException e) {
+                Log.e("loadTextFromFile", "Ошибка при закрытии потоков: " + fileName, e);
+            }
+        }
+
+        return text.toString();
+    }
+
+
+    @Override
+    public void onSuccess(File file) {
+
+    }
+
+    @Override
+    public void onFailure(Exception e) {
+
+    }
+
+    @Override
+    public void onProgress(int progress) {
+
+    }
+
+    private void openDocumentTree() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        startActivityForResult(intent, REQUEST_CODE_OPEN_DOCUMENT_TREE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_OPEN_DOCUMENT_TREE && resultCode == RESULT_OK) {
+            if (data != null) {
+                Uri treeUri = data.getData();
+                // Grant permissions to the content URI
+                getContentResolver().takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+                // Save the URI for later use
+                saveTreeUri(treeUri);
+            }
+        }
+    }
+
+
+
+    private void saveTreeUri(Uri uri) {
+        SharedPreferences sharedPreferences = getSharedPreferences("QuranAudio", MODE_PRIVATE);
+        sharedPreferences.edit().putString("treeUri", uri.toString()).apply();
+    }
+
+    private Uri getSavedTreeUri() {
+        SharedPreferences sharedPreferences = getSharedPreferences("QuranAudio", MODE_PRIVATE);
+        String uriString = sharedPreferences.getString("treeUri", null);
+        return uriString != null ? Uri.parse(uriString) : null;
+    }
+
+
+    private void listFilesInDirectory(Uri treeUri) {
+        if (treeUri == null) {
+            return;
+        }
+
+        DocumentFile directory = DocumentFile.fromTreeUri(this, treeUri);
+        if (directory != null && directory.isDirectory()) {
+            for (DocumentFile file : directory.listFiles()) {
+                // Process each file in the directory
+                Log.d("File", "File name: " + file.getName());
+            }
+        }
+    }
+
+    private void showQuoteDialog(String quote) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Читайте Коран! Любите Коран!")
+                .setMessage(quote)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    try {
+                        // Обновление иконки закладки для текущей страницы
+                        Menu menu = b.toolbar.getMenu();
+                        MenuItem addBookmarkItem = menu.findItem(R.id.action_add_bookmark);
+
+                        // Проверяем, есть ли закладка на текущей странице
+                        if (bookmarkAdapter.isBookmarked(currentPosition)) {
+                            // Если закладка есть, получаем её цвет
+                            Bookmark bookmark = bookmarkAdapter.getBookmark(currentPosition);
+                            int bookmarkColor = bookmark.getFillColor();
+
+                            // Устанавливаем иконку bookmark_full и изменяем её цвет
+                            addBookmarkItem.setIcon(getBookmarkIconByColor(bookmarkColor));
+                        } else {
+                            // Если закладки нет, устанавливаем иконку bookmark_empty (без цвета)
+                            addBookmarkItem.setIcon(R.drawable.bookmark_empty);
+                        }
+
+                        // Обновляем адаптер
+                        bookmarkAdapter.notifyDataSetChanged();
+                    } catch (Exception e) {
+                        // Вывод исключения в лог для отладки
+                        e.printStackTrace();
+                    }
+
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    // Метод для получения иконки закладки по цвету
+    private int getBookmarkIconByColor(int color) {
+        switch (color) {
+            case Color.WHITE:
+                return R.drawable.bookmark_full;
+            case 0xFFC40A0A: // Красный
+                return R.drawable.bookmark_full_red;
+            case 0xFF66FF00: // Зеленый
+                return R.drawable.bookmark_full_green;
+            case 0xFFF8FF3D: // Желтый
+                return R.drawable.bookmark_full_yellow;
+            case 0xFF0077FF: // Синий
+                return R.drawable.bookmark_full_blue;
+            case Color.BLACK: // Черный
+                return R.drawable.bookmark_full_black;
+            case 0xFF8A2BE2: // Фиолетовый (fiol)
+                return R.drawable.bookmark_full_fiol;
+            case 0xFFFF00FF: // Розовый (новый)
+                return R.drawable.bookmark_full_pink;
+            case 0xFFFFA500: // Оранжевый
+                return R.drawable.bookmark_full_orange;
+            case 0xFF40E0D0: // Бирюзовый (bir)
+                return R.drawable.bookmark_full_bir;
+            default:
+                return R.drawable.bookmark_full; // Иконка по умолчанию
+        }
+    }
+
+    private void restoreLastPlayedPosition() {
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("SuraPlayerPrefs", Context.MODE_PRIVATE);
+        long lastPlayedPosition = sharedPreferences.getLong("lastPlayedPosition", 0);
+
+        if (lastPlayedPosition > 0) {
+            exoPlayer.seekTo(lastPlayedPosition);
+        }
+    }
+
+    private void saveLastPlayedPosition() {
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("SuraPlayerPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putLong("lastPlayedPosition", exoPlayer.getCurrentPosition());
+        editor.apply();
+    }
+
+    private final String[] quotes = {
+            "Аллах не наказывает человека, хранящего в сердце Коран\n" +
+                    "\n" +
+                    "Абу Амама аль-Бахили: «Читайте Коран, и пусть вас не вводят в обман эти собранные вместе листы, ибо Аллах не наказывает сердце, которое хранит Коран (то есть сердце того, кто выучил его и выполняет его установления, а тот, кто выучил его слова, но не следует им, не является его хранителем)».",
+            "Главные знания можно найти в Коране\n" +
+                    "\n" +
+                    "Ибн Масъуд, да будет доволен им Аллах: «Если хотите постичь знания, то ищите их в Коране, ибо  в нем – знание первых и последних (людей)».",
+            "Вознаграждение обещано за каждую букву Корана\n" +
+                    "\n" +
+                    "Ибн Масъуд, да будет доволен им Аллах, передал: «Читайте Коран, ибо за каждую прочитанную букву вам зачитывается десять добрых дел. Я не говорю, что «алиф лям мим» - это одна буква, но что «алиф» - буква, «лям» - это буква и «мим» - это буква».",
+            "По отношению к Корану можно узнать свою любовь к Аллаху и Его пророку\n" +
+                    "\n" +
+                    "Ибн Масъуд, да будет доволен им Аллах, сказал: «Пусть никто из вас не спрашивает себя ни о чем, кроме как о Коране, (чтобы знать, любит ли он Аллаха и Его Посланника, да благословит его Аллах и приветствует): ведь если он любит Коран и он вызывает в нем восхищение, значит, он любит Аллаха и Его Посланника, да благословит его Аллах и приветствует, а если он не любит Коран, значит, он не любит Аллаха и Его Посланника, да благословит его Аллах и приветствует».",
+            "Аяты – это степени в Раю\n" +
+                    "\n" +
+                    "Амр бин аль-Ас, да будет доволен им Аллах, сказал: «Каждый аят Корана – это степень в Раю и светоч в ваших домах». И также: «Кто прочтет Коран, того (Аллах) возведет на степень пророчества (нубувва), разве что ему не будет ниспослано откровение свыше».",
+            "Чтение Корана приносит баракат в дом\n" +
+                    "\n" +
+                    "Абу Хурайра, да будет доволен им Аллах, сказал: «Поистине, дом, где читают Коран, станет просторным для его обитателей, и увеличится его благодать, в него войдут ангелы и оттуда изойдут дьяволы, а дом, где не читают книгу Аллаха, станет тесным для его обитателей, уменьшится его благодать, покинут его ангелы и поселятся там дьяволы».",
+            "Всевышний любит чтение Корана как с пониманием, так и без понимания\n" +
+                    "\n" +
+                    "Имам Ахмад ибн Ханбал сказал: «Я увидел во сне Аллаха и спросил у Него: «О Господи, что есть лучшее из того, благодаря которому к Тебе приближаются приближенные?» Всевышний ответил: «Чтение Моего Корана, о Ахмад». Я вновь спросил: «С пониманием или без понимания?» И услышал: «С пониманием и без понимания».",
+            "Знание Корана возвышает выше халифов и  других влиятельных лиц\n" +
+                    "\n" +
+                    "«Носителю знания Корана, поступающему согласно ему, не следует унижаться ни перед кем ради исполнения своих нужд – ни перед халифами, ни перед другими. (Напротив), следует, чтобы люди нуждались в нем».",
+            "Ангелы проявляют почтение к чтецам Корана\n" +
+                    "\n" +
+                    "Суфьян ас-Саури сказал: «Когда человек завершает чтение Корана, ангел целует его между глаз, (проявляя к нему и к тому, что он прочитал, почтение)».",
+            "В Коране – богатство, в его утрате – бедность\n" +
+                    "\n" +
+                    "Рассказывают, что Халид ибн Укба пришел к Посланнику Аллаха, да благословит его Аллах и приветствует, и попросил его: «Прочитай мне что-нибудь из Корана». Пророк, да благословит его Аллах и приветствует, прочел ему аят: «(Скажи): «Поистине, Аллах приказывает проявлять справедливость (утверждением единобожия, выражением благодарности Аллаха за милости), истовость в поклонение и  добродетельность в отношениях с людьми  и давать пожертвования близким» (сура «ан-Нахль», «Пчелы», аят 90).\n" +
+                    "\n" +
+                    "Халид попросил прочесть еще раз, и Пророк, да благословит его Аллах и приветствует, повторил аят, после чего Халид сказал: «Клянусь Аллахом, в нем сладость и изящество слога! Поистине, эта книга – как дерево, внизу в листве, а наверху усеян плодами. Такое не сказать смертному!»\n" +
+                    "\n" +
+                    "Также Хасан аль-Басри сказал: «Клянусь Аллахом, нет богатства превыше Корана и нет бедности хуже утраты Корана».",
+            "Чтение Корана приумножает благодеяния\n" +
+                    "\n" +
+                    "Амр ибн Маймун сказал: «Если кто на утренней молитве, раскрыв Коран, прочтет из него сто аятов, то Аллах зачтет это для него как равное благим деяниям всех людей этого мира».",
+            "Чтение Корана улучшает память\n" +
+                    "\n" +
+                    "Али ибн Абу Талиб, да будет доволен им Аллах, сказал: «Три вещи улучшают память и избавляют от мокроты: сивак, пост и чтение Корана».",
+            "Чтение Корана, согласно высказываниям праведников, которые сделали его постоянным своим спутником, связано с многочисленными благами, как в этом мире, так и в следующей жизни. Чтение Корана приумножает мирские блага, возвышает человека в степени, украшает будущую жизнь и дает успокоение и сладость сердцу. Никакие отговорки подобно «боюсь читать неправильно», «не понимаю», «совершаю ошибки», «читаю сбивчиво», «нет времени», «в следующем году/месяце» и т.п. не являются серьезным обоснованием отказа от всех перечисленных благ. Главное – решиться читать Коран, добиваясь этим довольства Аллаха, а все остальные препятствия со временем отпадут сами собой. Как говорил имам Ахмад, Всевышний любит чтение Корана и с пониманием и без понимания. Как сказал Посланник Аллаха, да благословит его Аллах и приветствует, (смысл) за чтение Корана дается вознаграждение, а за чтение с трудностями (сбивчиво или запинаясь) – двойная награда. Чтение Корана даже без понимания успокаивает сердце, очищает душу, умножает благосостояние человека. Поэтому ориентируясь на Посланника Аллаха, да благословит его Аллах и приветствует,  и его благочестивых последователей, мы должны в этом священном месяце сделать хотя бы один шаг в сторону Корана: кто не умеет читать – научиться, кто умеет, но не читал – начать, а кто умеет и уже читал – стараться увеличить чтение и следовать установлениям книги Аллаха. Одно из лучших вложений, которое мы можем сделать в своей жизни – это вложение своих сил и времени на чтение (и следование) Корану.\n" +
+                    "\n © Ася Гагиева",
+            "Передаётся от Анаса ибн Малика: «Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "إنَّ للَّهِ أَهْلِينَ مِنَ النَّاسِ قَالُوا يَا رَسُولَ اللَّهِ مَنْ هُمْ قَالَ هُمْ أَهْلُ الْقُرْآنِ أَهْلُ اللَّهِ وَخَاصَّتُهُ\n" +
+                    "\n" +
+                    "«У Аллаха есть приближённые из числа людей!». Его спросили: «О Посланник Аллаха, кто они?», — на что он ﷺ ответил: «Приверженцы Корана! Они и есть приближённые Аллаха и Его избранники» (Ибн Маджа).",
+            "Передаётся от Абдуллаха ибн Масуда: «Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "مَنْ قَرَأَ حَرْفًا مِنْ كِتَابِ اللَّهِ فَلَهُ بِهِ حَسَنَةٌ وَالْحَسَنَةُ بِعَشْرِ أَمْثَالِهَا لَا أَقُولُ الم حَرْفٌ وَلَكِنْ أَلِفٌ حَرْفٌ وَلَامٌ حَرْفٌ وَمِيمٌ حَرْفٌ\n" +
+                    "\n" +
+                    "«Тому, кто прочтёт (хотя бы одну) букву из Книги Аллаха, (запишется одно) доброе дело, а за каждое доброе дело воздастся десятикратно, и я не говорю, что «алиф, лям, мим» — это одна буква. «Алиф» — это одна буква, «лям» — другая буква и «мим» — третья буква» (ат-Тирмизи, который сказал, что хадис хасан сахих).",
+            "Передаётся от Усмана ибн Аффана, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "خَيْرُكُمْ مَن تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ\n" +
+                    "\n" +
+                    "«Лучший из вас — кто изучает Коран и обучает ему других» (Бухари).",
+            "Передаётся от Абу Умамы аль-Бахили: «Я слышал, как Посланник Аллаха ﷺ говорил:\n" +
+                    "\n" +
+                    "اِقْرَءُوا الْقُرْآنَ فَإِنَّهُ يَأْتِي يَوْمَ الْقِيَامَةِ شَفِيعًا لِأَصْحَابِهِ\n" +
+                    "\n" +
+                    "«Читайте Коран! Ведь в Судный день он явится как заступник за тех, кто читал его» (Муслим).",
+            "Передаётся от Абдуллаха ибн Амра:\n" +
+                    "\n" +
+                    "يُقَالُ لِصَاحِبِ الْقُرْآنِ اقْرَأْ وَارْتَقِ وَرَتِّلْ كَمَا كُنْتَ تُرَتِّلُ فِي الدُّنْيَا فَإِنَّ مَنْزِلَتَكَ عِنْدَ آخِرِ آيَةٍ تَقْرَؤُهَا\n" +
+                    "\n" +
+                    "«Знавшему Коран в Судный день будет сказано: «Читай и подними себя. Читай Коран, как читал его в земной жизни. И место твоё будет соответствовать последнему прочтённому тобою аяту» (Ахмад).",
+            "Передаётся от Джабира:\n" +
+                    "\n" +
+                    "كَانَ النَّبِيُّ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ يَجْمَعُ بَيْنَ الرَّجُلَيْنِ مِنْ قَتْلَى أُحَدٍ فِي ثَوْبٍ وَاحِدٍ ثُمَّ يَقُولُ أَيُّهُمْ أَكْثَرُ أَخْذًا لِلْقُرْآنِ فَيُقَدِّمُهُ فِي اللَّحْدِ\n" +
+                    "\n" +
+                    "«Пророк ﷺ заворачивал тела каждых двоих убитых в битве при Ухуде в один саван, а потом спрашивал: «Кто из них больше знает Коран?». Если указывали на одного из них, то он приказывал класть его в нишу первым...» (Бухари).",
+            "Передаётся от Абу Хурайры, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "مَا اجْتَمَعَ قَوْمٌ فِي بَيْتٍ مِنْ بُيُوتِ اللَّهِ تَعَالَى يَتْلُونَ كِتَابَ اللَّهِ وَيَتَدَارَسُونَهُ بَيْنَهُمْ إِلاَّ نَزَلَتْ عَلَيْهِمُ السَّكِينَةُ وَغَشِيَتْهُمُ الرَّحْمَةُ وَحَفَّتْهُمُ الْمَلاَئِكَةُ وَذَكَرَهُمُ اللَّهُ فِيمَنْ عِنْدَهُ\n" +
+                    "\n" +
+                    "«Когда бы ни собирались люди в одном из домов Аллаха для чтения и изучения Корана, на них непременно нисходит спокойствие. Милость покрывает их, ангелы окружают их, и Аллах упоминает о них среди тех, кто у Него» (Муслим).",
+            "Передаётся от Абу Хурайры, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "يَجِيءُ القُرْآنُ يَوْمَ القِيَامَةِ فَيَقُولُ يَا رَبِّ حَلِّهِ فَيُلْبَسُ تَاجَ الْكَرَامَةِ ثُمَّ يَقُولُ يَا رَبِّ زِدْهُ فَيُلْبَسُ حُلَّةَ الْكَرَامَةِ ثُمَّ يَقُولُ يَا رَبِّ ارْضَ عَنْهُ فَيَرْضَى عَنْهُ فَيُقَالُ لَهُ اقْرَأْ وَارْقَ وَيُزَادُ بِكُلِّ آيَةٍ حَسَنَةً\n" +
+                    "\n" +
+                    "«В Судный день придёт Коран и скажет: «О Господь, укрась его (читавшего Коран)!», — после чего на читавшего Коран наденут корону почёта. Затем Коран скажет: «О Господь, прибавь ему!», — и наденут на него одежду почёта. Затем Коран скажет: «О Господь, будь доволен им!», — и Он будет им доволен. (Затем читавшему Коран) скажут: «Читай и возвышайся!», — и за каждый аят ему прибавят (награду, как за совершение одного) благого дела!» (ат-Тирмизи, сказав, что хадис хасан).",
+            "Передаётся от Абу Хурайры, что Пророк ﷺ говорил:\n" +
+                    "\n" +
+                    "مَا أَذِنَ اللَّهُ لِشَيْءٍ مَا أَذِنَ لِلنَّبِيِّ أَنْ يَتَغَنَّى بِالقُرْآنِ\n" +
+                    "\n" +
+                    "«Никому не внимал Аллах так, как внимал Пророку, когда он читал Коран нараспев» (Бухари, Муслим).",
+            "Передаётся от Абу Хурайры:\n" +
+                    "\n" +
+                    "إِذَا قَرَأَ ابْنُ آدَمَ السَّجْدَةَ اعْتَزَلَ الشَّيْطَانُ يَبْكِي يَقُولُ يَا وَيْلَهُ أُمِرَ ابْنُ آدَمَ بِالسُّجُودِ فَسَجَدَ فَلَهُ الْجَنَّةُ وَأُمِرْتُ بِالسُّجُودِ فَأَبَيْتُ فَلِيَ النَّار\n" +
+                    "\n" +
+                    "«Когда сын Адама читает аят земного поклона и совершает земной поклон, Шайтан уходит с плачем, говоря: «Горе ему! Ведь сыну Адама было велено совершить земной поклон, он совершил, и ему за это — Рай, и мне было велено, но я отказался, и за это мне причитается Ад» (Муслим).",
+            "Передаётся от Абу Саида аль-Худри, а он — от Муавии:\n" +
+                    "\n" +
+                    "أَنَّ رَسُولَ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ خَرَجَ عَلَى حَلْقَةٍ مِنْ أَصْحَابِهِ فَقَالَ مَا أَجْلَسَكُمْ قَالُوا جَلَسْنَا نَذْكُرُ اللَّهَ وَنَحْمَدُهُ عَلَى مَا هَدَانَا لِلْإِسْلَامِ وَمَنَّ بِهِ عَلَيْنَا قَالَ آللَّهِ مَا أَجْلَسَكُمْ إِلَّا ذَاكَ قَالُوا وَاللَّهِ مَا أَجْلَسَنَا إِلَّا ذَاكَ قَالَ أَمَا إِنِّي لَمْ أَسْتَحْلِفْكُمْ تُهْمَةً لَكُمْ وَلَكِنَّهُ أَتَانِي جِبْرِيلُ فَأَخْبَرَنِي أَنَّ اللَّهَ عَزَّ وَجَلَّ يُبَاهِي بِكُمُ الْمَلَائِكَةَ\n" +
+                    "\n" +
+                    "«Посланник Аллаха ﷺ подошёл к группе своих сподвижников, находившихся в мечети, и сказал: «Почему вы сидите?». Они ответили: «Мы сидим, поминая Аллаха и воздавая нашу благодарность Ему за то, что Он привёл нас к Исламу». Пророк Аллаха ﷺ сказал: «Вы клянётесь, что делаете именно это, сидя здесь?». Они ответили: «Клянёмся Аллахом, мы сидим здесь только поэтому». На это Пророк ﷺ сказал: «Я заставил вас поклясться не из-за того, что я сомневаюсь, а потому, что ангел Джибриль (а.с.) пришёл и сказал мне, что Аллах гордится вами перед ангелами» (Муслим).",
+            "Передаётся от ан-Навваса ибн Самъана аль-Ансари:\n" +
+                    "\n" +
+                    "يُؤْتَى بِالْقُرْآنِ يَوْمَ الْقِيَامَةِ وَأَهْلِهِ الَّذِينَ كَانُوا يَعْمَلُونَ بِهِ تَقْدُمُهُ سُورَةُ الْبَقَرَةِ وَآلِ عِمرَانَ وَضَرَبَ لَهُمَا رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ ثَلَاثَةَ أَمْثَالٍ مَا نَسِيتُهُنَّ بَعْدُ قَالَ كَأَنَّهُمَا غَمَامَتَانِ أَوْ ظُلَّتَانِ سَوْدَاوَانِ بَيْنَهُمَا شَرْقٌ أَوْ كَأَنَّهُمَا حِزْقَانِ مِنْ طَيْرٍ صَوَافَّ تُحَاجَّانِ عَنْ صَاحِبِهِمَا\n" +
+                    "\n" +
+                    "«В Судный день приведут Коран и чтецов, которые следовали ему. Суры «Аль-Бакара» и «Али Имран» будут впереди. Посланник Аллаха ﷺ привёл такие три описания данных сур, что я не забыл их и по сей день: «Они словно два облака или две чёрные тени, между которыми сверкает луч света. Или они словно две стаи птиц, которые распростёрли в небе свои крылья. Эти суры охраняют людей, которые читают их» (Муслим).",
+            "Передаётся от Аиши: «Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "الْمَاهِرُ بِالْقُرْآنِ مَعَ السَّفَرَةِ الْكِرَامِ الْبَرَرَةِ وَالَّذِي يَقْرَأُ الْقُرْآنَ وَيَتَتَعْتَعُ فِيهِ وَهُوَ عَلَيْهِ شَاقٌّ لَهُ أَجْرَانِ\n" +
+                    "\n" +
+                    "«Тот, кто хорошо умеет читать Коран, будет в Раю вместе с благородными и покорными ангелами-писцами, а тому, кто читает Коран, запинаясь и испытывая при этом затруднения, уготована двойная награда» (Муслим).",
+            "Передаётся от Бурайды: «Я слышал, как Пророк ﷺ говорил:\n" +
+                    "\n" +
+                    "إِنَّ الْقُرآنَ يَلْقَى صَاحِبَهُ يَوْمَ الْقِيَامَةِ حِينَ يَنْشَقُّ عَنْهُ قَبْرُهُ كَالرَّجُلِ الشَّاحِبِ فَيَقُولُ لَهُ هَلْ تَعْرِفُنِي فَيَقُولُ مَا أَعْرِفُكَ فَيَقُولُ أَنَا صَاحِبُكَ الْقُرْآنُ الَّذِي أَظْمَأْتُكَ فِي الْهَوَاجِرِ وَأَسْهَرْتُ لَيْلَكَ وَإِنَّ كُلَّ تَاجِرٍ مِنْ وَرَاءِ تِجَارَتِهِ وَإِنَّكَ الْيَوْمَ مِنْ وَرَاءِ كُلِّ تِجَارَةٍ فَيُعْطَى الْمُلْكَ بِيَمِينِهِ وَالْخُلْدَ بِشِمَالِهِ وَيُوضَعُ عَلَى رَأْسِهِ تَاجُ الْوَقَارِ وَيُكْسَى وَالِدَاهُ حُلَّتَانِ لَا يَقُومُ لَهُمَا أَهْلُ الدُّنْيَا فَيَقُولَانِ بِمَا كُسِينَا هَذَا فَيُقَالُ بِأَخْذِ وَلَدِكُمَا الْقُرْآنَ ثُمَّ يُقَالُ اقْرَأْ وَاصْعَدْ فِي دَرَجِ الْجَنَّةِ وَغُرَفِهَا فَهُوَ فِي صُعُودٍ مَا دَامَ يَقْرأُ هَذًّا كَانَ أَوْ تَرْتِيلً\n" +
+                    "\n" +
+                    "«В Судный день Коран явится в виде бледного человека и встретит своего чтеца у могилы, когда она откроется. Коран спросит его: «Ты знаешь меня?». И человек ответит: «Нет, я не знаю тебя». И Коран скажет: «Я — твой спутник, Коран, который вызывал у тебя жажду, во время жары, и заставлял подниматься тебя ночью. Каждый купец стоит за своей торговлей, сегодня ты стоишь за всеми видами торговли». А затем в его правую руку будет положена власть, в левую — вечная жизнь, а на голову будет водружена корона достоинства. Его родители будут вознаграждены двумя такими одеждами, которые никто из них не имел в мирской жизни. Они спросят: «Почему нам даны эти одежды?». И им будет отвечено: «Потому что ваш сын изучал Коран». И будет сказано (чтецу Корана): «Взойди, читая, по ступеням Рая и его комнатам». И он будет подниматься столь долго, сколь читает Коран, и не важно, читает он быстро или медленно» (Ахмад, Ибн Маджа).",
+            "Передаётся от Абу Саида аль-Худри, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "يَقُولُ الرَّبُّ عَزَّ وَجَلَّ مَنْ شَغَلَهُ الْقُرْآنُ وَذِكْرِى عَنْ مَسْأَلَتِى أَعْطَيْتُهُ أَفْضَلَ مَا أُعْطِى السَّائِلِينَ وَفَضْلُ كَلَامِ اللَّهِ عَلَى سَائِرِ الْكَلَامِ كَفَضْلِ اللَّهِ عَلَى خَلْقِهِ\n" +
+                    "\n" +
+                    "«Великий и Всемогущий Господь говорит: «Тому, кого поминание Меня и чтение Корана отвлекло от просьб ко Мне, Я дам лучшее, что даю просящим у Меня». А достоинство речи Аллаха (Корана) в сравнении с достоинством остальной речи подобно достоинству Аллаха над Его творениями» (ат-Тирмизи, который сказал, что хадис хасан гариб).",
+            "Передаётся от Абдуллаха ибн Масъуда, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "اِقْرَءُوا الْقُرْآنَ فَإِنَّ اللَّهَ تَعَالَى لَا يُعَذِّبُ قَلْبًا وَعَى الْقُرْآنَ وَإِنَّ هَذَا الْقُرْآنَ مَأْدُبَةُ اللَّهِ فَمَنْ دَخَلَ فِيهِ فَهُوَ آمِنٌ مَنْ أَحَبَّ الْقُرْآنَ فَلْيُبْشِرْ\n" +
+                    "\n" +
+                    "«Читайте Коран, ведь Аллах не накажет сердце, наполненное Кораном! Коран — угощение Аллаха, кто пришёл на угощение, тот в безопасности, а кто полюбил Коран, того обрадуйте благой вестью» (ад-Дарими).",
+            "Передаётся от Сахля ибн Муаза аль-Джухани, а он — от своего отца: «Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "مَنْ قَرَأَ الْقُرْآنَ وَعَمِلَ بِمَا فِيهِ أُلْبِسَ وَالِدَاهُ تَاجًا يَوْمَ الْقِيَامَةِ ضَوْءُهُ أَحْسَنُ مِنْ ضَوْءِ الشَّمْسِ فِي بُيُوتِ الدُّنْيَا لَوْ كَانَتْ فِيكُمْ فَمَا ظَنُّكُمْ بِالَّذِي عَمِلَ بِهَذَا\n" +
+                    "\n" +
+                    "«Отцу и матери человека, который читал Коран и поступал в соответствии с ним, в Судный день наденут корону. Свет этой короны будет прекраснее света солнца, проникающего в дома в земной жизни. Так что вы думаете о положении тех, кто поступал в соответствии с Кораном?!» (Абу Дауд).",
+            "Передаётся от Абдуллаха ибн Умара, что Пророк ﷺ сказал:\n" +
+                    "\n" +
+                    "لَا حَسَدَ إِلَّا فِي اثْنَتَيْنِ رَجُلٌ آتَاهُ اللَّهُ الْقُرْآنَ فَهُوَ يَقُومُ بِهِ آنَاءَ اللَّيلِ وَآنَاءَ النَّهَارِ وَرَجُلٌ آتَاهُ اللَّهُ مَالًا فَهُوَ يُنْفِقُهُ آنَاءَ اللَّيْلِ وَآنَاءَ النَّهَارِ\n" +
+                    "\n" +
+                    "«Можно завидовать только двум людям: один — это тот, кому Аллах дал знание Корана. Такой человек днём и ночью занят Кораном. Второй — это тот, кому Аллах даровал богатство, и он днём и ночью занят тем, что тратит его (на благом пути)» (Бухари, Муслим).",
+            "Передаётся от Абдуллаха ибн Аббаса: «Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "إِنَّ الَّذِي لَيْسَ فِي جَوْفِهِ شَيْءٌ مِنَ الْقُرْآنِ كَالْبَيْتِ الْخَرِبِ\n" +
+                    "\n" +
+                    "«Тот, кто не знает ничего из Корана, подобен разрушенному дому» (ат-Тирмизи, который сказал, что хадис хасан сахих).",
+            "Сообщается, что Абу Умама, да будет доволен им Аллах, сказал:\n" +
+                    "\n" +
+                    "— Я слышал, как Посланник Аллаха ﷺ сказал: «Читайте Коран, ибо, поистине, в День воскресения он явится как заступник за тех, кто его читал». (Муслим 804)",
+            "Сообщается, что ан-Наввас бин Сам‘ан, да будет доволен им Аллах, сказал:\n" +
+                    "\n" +
+                    "— Я слышал, как Посланник Аллаха ﷺ сказал: «В День воскресения приведут Коран и тех, кто в мире этом поступал согласно его (установлениям), а впереди него будут идти суры „Корова“ и „Семейство Имрана“, которые станут (выдвигать аргументы в пользу) тех, кто придерживался их». (Муслим 805)",
+            " Передают со слов Абу Мусы, да будет доволен им Аллах, что Посланник Аллаха ﷺ сказал:\n" +
+                    "\n" +
+                    "— Верующий, который читает Коран, подобен сладкому лимону, обладающему приятным запахом и вкусом, а верующий, который не читает Коран, подобен финику, не обладающему запахом, но сладкому на вкус. Лицемер, который читает Коран, подобен базилику, обладающему приятным запахом, но горькому на вкус, а лицемер, который Коран не читает, подобен колоквинту, не обладающему запахом и горькому на вкус. (Аль-Бухари 5427; Муслим 797)",
+
+            "Подружитесь с Кораном, всегда открывайте Коран. Не просто читайте Коран, любите Коран, живите по Корану \n\n© Жители Газзы",
+            "Поставьте Аллаха, Коран на первое место и Аллах организует ваши дела \n\n© Жители Газзы",
+            "Если у вас нет времени на Коран, на первом ли месте у вас ахира? Как мы воспитываем наших детей, на первом ли месте для них ахира? \n\n© Жители Газзы",
+            "Нам не нужна жалость, если хотите нам помочь - оставьте грехи, оставьте грехи, оставьте грехи. Тот кто совершает грехи, его сердце становится черным и не принимает Коран \n\n© Жители Газзы",
+            "Начните сегодня как будто это первый день в вашей жизни. Скажите себе: какой грех я сегодня могу оставить чтобы приблизить победу? \n\n© Жители Газзы",
+            "Читайте много салаватов, особенно в пятницу, с четверга на пятницу. Когда что-то делаете, спросите себя: если бы сейчас  пришел Пророк \n صلى الله عل\"يه وسلم \n в мой дом и увидел как мы живём ему бы это понравилось?\" - чтобы понять правильно ли мы живём. Перед сном делайте самоотчёт. \n\n© Жители Газзы",
+            "Эта дунья проклята, кроме упоминания Аллаха, Корана... \n\n© Жители Газзы",
+            "Вы сами выбираете какой будет ваш конец. Если вы подружитесь с Кораном, он вас не оставит при смерти и после смерти \n\n© Жители Газзы",
+            "Больше 1300 человек недавно сдали Коран, стали хафизами в Газзе. АльхамдулиЛлях. Как бы мы сейчас читали Коран если бы не знали его наизусть... \n\n© Жители Газзы",
+            "Когда ангелы будут допрашивать в могиле, Коран сам будет отвечать за человека \n\n© Жители Газзы",
+            "Даже муж/жена, дети, мама, папа - самые любимые люди, никто не будет с вами в могиле, только Коран \n\n© Жители Газзы",
+            "Дружите с Кораном, измените себя, чтобы мир изменился к лучшему \n\n© Жители Газзы",
+            "Праздная жизнь - оковы дуньи, а Коран - крылья ахырата \n\n© ibn Rustum"
+    };
+
+    private void showRandomQuoteOnLaunch() {
+        // Генерация случайного индекса
+        int randomIndex = new Random().nextInt(quotes.length);
+
+        // Получение случайной цитаты
+        String randomQuote = quotes[randomIndex];
+
+        // Показать цитату в диалоге
+        showQuoteDialog(randomQuote);
+    }
+
+    // Метод для обновления прогресса загрузки
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        //TODO
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            long currentTime = System.currentTimeMillis();
+            if ((currentTime - lastUpdate) > 100) {
+                long diffTime = (currentTime - lastUpdate);
+                lastUpdate = currentTime;
+
+                float x = event.values[0];
+                float y = event.values[1];
+
+                if (x > SHAKE_THRESHOLD) {
+                    // Наклон направо-вниз, переворачиваем назад
+                    turnPageBackward();
+                } else if (x < -SHAKE_THRESHOLD) {
+                    // Наклон налево-вниз, переворачиваем вперед
+                    turnPageForward();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        //TODO
+    }
+
+
+    private void turnPageForward() {
+        int nextPage = currentPosition + 1;
+        if (nextPage < viewPager.getAdapter().getItemCount()) {
+            viewPager.setCurrentItem(nextPage);
+        }
+    }
+
+    private void turnPageBackward() {
+        int previousPage = currentPosition - 1;
+        if (previousPage >= 0) {
+            viewPager.setCurrentItem(previousPage);
+        }
+    }
+
+    public interface OnPageChangedListener {
+        void onPageChanged(int position);
+        int getCurrentPosition();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveLastPlayedPosition();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Пишем в журнал ошибок перед уничтожением активности
+
+    }
+
+    @OptIn(markerClass = UnstableApi.class)
+    private void loadTafsirRecycler(String folder, String fileName) {
+        Log.d("TafsirDebug", "=== ЗАГРУЗКА ===");
+        Log.d("TafsirDebug", "Папка: " + folder);
+        Log.d("TafsirDebug", "Файл: " + fileName);
+
+        try {
+            // 1️⃣ Форматируем имя файла (001.json, 002.json и т.д.)
+            String formattedFileName = String.format("%03d.json",
+                    Integer.parseInt(fileName.replace(".json", "").trim()));
+
+            // 2️⃣ Проверяем, есть ли файл
+            InputStream is;
+            try {
+                is = getAssets().open(folder + "/" + formattedFileName);
+            } catch (IOException e) {
+                Log.e("TafsirDebug", "Файл не найден: " + folder + "/" + formattedFileName);
+                Toast.makeText(this, "Файл не найден: " + folder + "/" + formattedFileName, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 3️⃣ Читаем JSON
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            String jsonStr = new String(buffer, StandardCharsets.UTF_8);
+
+            // 4️⃣ Определяем, какой адаптер нужен
+            RecyclerView recyclerView = b.tafsirRecycler;
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+            if (folder.equals("quran_dict")) {
+                // ---------- 📘 Коранический словарь ----------
+                List<DictItem> dictItems = new ArrayList<>();
+
+                JSONObject json = new JSONObject(jsonStr);
+                Iterator<String> pageKeys = json.keys(); // Страницы (183, 184 и т.д.)
+
+                Log.d("TafsirDebug", "Начало парсинга словаря");
+
+                while (pageKeys.hasNext()) {
+                    String pageKey = pageKeys.next();
+                    JSONObject pageObj = json.getJSONObject(pageKey);
+
+                    Iterator<String> suraKeys = pageObj.keys(); // Суры (8, 9 и т.д.)
+                    while (suraKeys.hasNext()) {
+                        String suraKey = suraKeys.next();
+                        JSONObject suraObj = pageObj.getJSONObject(suraKey);
+
+                        Iterator<String> ayahKeys = suraObj.keys(); // Аяты (46, 47, 48...)
+                        while (ayahKeys.hasNext()) {
+                            String ayahKey = ayahKeys.next();
+                            JSONObject ayahObj = suraObj.getJSONObject(ayahKey);
+
+                            Iterator<String> wordKeys = ayahObj.keys(); // Слова (1, 3, 5...)
+                            while (wordKeys.hasNext()) {
+                                String wordKey = wordKeys.next();
+                                JSONObject wordObj = ayahObj.getJSONObject(wordKey);
+
+                                // Извлекаем данные слова
+                                String num = wordObj.optString("num", "");
+                                String ar = wordObj.optString("ar", "");
+                                String root = wordObj.optString("root", "");
+                                String translate = wordObj.optString("translate", "");
+                                String grammar = wordObj.optString("grammar", "");
+
+                                // Добавляем только если есть арабский текст
+                                if (!ar.isEmpty()) {
+                                    dictItems.add(new DictItem(num, ar, root, translate, grammar));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Log.d("TafsirDebug", "Словарь загружен, элементов: " + dictItems.size());
+
+                if (dictItems.isEmpty()) {
+                    Toast.makeText(this, "Словарь пуст: " + formattedFileName, Toast.LENGTH_SHORT).show();
+                }
+
+                recyclerView.setAdapter(new DictionaryAdapter(this, dictItems));
+
+            } else {
+                // ---------- 📖 Тафсир ----------
+                List<TafsirItem> tafsirItems = new ArrayList<>();
+
+                JSONObject json = new JSONObject(jsonStr);
+                Iterator<String> suraKeys = json.keys();
+
+                Log.d("TafsirDebug", "Начало парсинга тафсира");
+
+                while (suraKeys.hasNext()) {
+                    String suraKey = suraKeys.next();
+                    JSONObject suraObj = json.getJSONObject(suraKey);
+                    Iterator<String> ayahKeys = suraObj.keys();
+
+                    while (ayahKeys.hasNext()) {
+                        String ayahKey = ayahKeys.next();
+                        JSONObject ayahObj = suraObj.getJSONObject(ayahKey);
+
+                        String arabic = ayahObj.optString("ar", "");
+                        String translation = ayahObj.optString("translation", "");
+                        String tafsir = ayahObj.optString("tafsir", "");
+
+                        tafsirItems.add(new TafsirItem(suraKey, ayahKey, arabic, translation, tafsir));
+                    }
+                }
+
+                Log.d("TafsirDebug", "Тафсир загружен, элементов: " + tafsirItems.size());
+                recyclerView.setAdapter(new TafsirAdapter(this, tafsirItems));
+
+            }
+
+        } catch (Exception e) {
+            Log.e("TafsirDebug", "ОШИБКА загрузки", e);
+            e.printStackTrace();
+            Toast.makeText(this, "Ошибка загрузки: " + folder + "/" + fileName, Toast.LENGTH_SHORT).show();
+        }
+    }
+    // ==========================
+// 🔹 Загрузка JSON из assets
+// ==========================
+    private String loadJSONFromAssets(String path) {
+        try (InputStream is = getAssets().open(path)) {
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            return new String(buffer, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return "{}";
+        }
+    }
+
+    public String getAyatsOnPage(int page) {
+        switch (page) {
+            //Сура 1 Аль-Фатиха - Открывающая
+            case 1: return " аяты: 1-7";
+
+            //Сура 2 Аль-Бакара - Корова
+            case 2: return " аяты: 1-5";
+            case 3: return " аяты: 6-16";
+            case 4: return " аяты: 17-24";
+            case 5: return " аяты: 25-29";
+            case 6: return " аяты: 30-37";
+            case 7: return " аяты: 38-48";
+            case 8: return " аяты: 49-57";
+            case 9: return " аяты: 58-61";
+            case 10: return " аяты: 62-69";
+            case 11: return " аяты: 70-76";
+            case 12: return " аяты: 77-83";
+            case 13: return " аяты: 84-88";
+            case 14: return " аяты: 89-93";
+            case 15: return " аяты: 94-101";
+            case 16: return " аяты: 102-105";
+            case 17: return " аяты: 106-112";
+            case 18: return " аяты: 113-119";
+            case 19: return " аяты: 120-126";
+            case 20: return " аяты: 127-134";
+            case 21: return " аяты: 135-141";
+            case 22: return " аяты: 142-145";
+            case 23: return " аяты: 146-153";
+            case 24: return " аяты: 154-163";
+            case 25: return " аяты: 164-169";
+            case 26: return " аяты: 170-176";
+            case 27: return " аяты: 177-181";
+            case 28: return " аяты: 182-186";
+            case 29: return " аяты: 187-190";
+            case 30: return " аяты: 191-196";
+            case 31: return " аяты: 197-202";
+            case 32: return " аяты: 203-210";
+            case 33: return " аяты: 211-215";
+            case 34: return " аяты: 216-219";
+            case 35: return " аяты: 220-224";
+            case 36: return " аяты: 225-230";
+            case 37: return " аяты: 231-233";
+            case 38: return " аяты: 234-237";
+            case 39: return " аяты: 238-245";
+            case 40: return " аяты: 246-248";
+            case 41: return " аяты: 249-252";
+            case 42: return " аяты: 253-256";
+            case 43: return " аяты: 257-259";
+            case 44: return " аяты: 260-264";
+            case 45: return " аяты: 265-269";
+            case 46: return " аяты: 270-274";
+            case 47: return " аяты: 275-281";
+            case 48: return " аят: 282";
+            case 49: return " аяты: 283-286";
+
+            //Сура 3 Аль-Имран - Семейство Имрана
+            case 50: return " аяты: 1-9";
+            case 51: return " аяты: 10-15";
+            case 52: return " аяты: 16-22";
+            case 53: return " аяты: 23-29";
+            case 54: return " аяты: 30-37";
+            case 55: return " аяты: 38-45";
+            case 56: return " аяты: 46-52";
+            case 57: return " аяты: 53-61";
+            case 58: return " аяты: 62-70";
+            case 59: return " аяты: 71-77";
+            case 60: return " аяты: 78-83";
+            case 61: return " аяты: 84-91";
+            case 62: return " аяты: 92-100";
+            case 63: return " аяты: 101-108";
+            case 64: return " аяты: 109-115";
+            case 65: return " аяты: 116-121";
+            case 66: return " аяты: 122-132";
+            case 67: return " аяты: 133-140";
+            case 68: return " аяты: 141-148";
+            case 69: return " аяты: 149-153";
+            case 70: return " аяты: 154-157";
+            case 71: return " аяты: 158-165";
+            case 72: return " аяты: 166-173";
+            case 73: return " аяты: 174-180";
+            case 74: return " аяты: 181-186";
+            case 75: return " аяты: 187-194";
+            case 76: return " аяты: 195-200";
+
+            //Сура 4 Ан-Ниса - Женщины
+            case 77: return " аяты: 1-6";
+            case 78: return " аяты: 7-11";
+            case 79: return " аяты: 12-14";
+            case 80: return " аяты: 15-19";
+            case 81: return " аяты: 20-23";
+            case 82: return " аяты: 24-26";
+            case 83: return " аяты: 27-33";
+            case 84: return " аяты: 34-37";
+            case 85: return " аяты: 38-44";
+            case 86: return " аяты: 45-51";
+            case 87: return " аяты: 52-59";
+            case 88: return " аяты: 60-65";
+            case 89: return " аяты: 66-74";
+            case 90: return " аяты: 75-79";
+            case 91: return " аяты: 80-86";
+            case 92: return " аяты: 87-91";
+            case 93: return " аяты: 92-94";
+            case 94: return " аяты: 95-101";
+            case 95: return " аяты: 102-105";
+            case 96: return " аяты: 106-113";
+            case 97: return " аяты: 114-121";
+            case 98: return " аяты: 122-127";
+            case 99: return " аяты: 128-134";
+            case 100: return " аяты: 135-140";
+            case 101: return " аяты: 141-147";
+            case 102: return " аяты: 148-153";
+            case 103: return " аяты: 154-162";
+            case 104: return " аяты: 163-170";
+            case 105: return " аяты: 171-175";
+
+            case 106: return "";
+
+            // Сура 5 Аль-Маида - Трапеза
+            case 107: return " аяты: 3-5";
+            case 108: return " аяты: 6-9";
+            case 109: return " аяты: 10-13";
+            case 110: return " аяты: 14-17";
+            case 111: return " аяты: 18-23";
+            case 112: return " аяты: 24-31";
+            case 113: return " аяты: 32-36";
+            case 114: return " аяты: 37-41";
+            case 115: return " аяты: 42-45";
+            case 116: return " аяты: 46-50";
+            case 117: return " аяты: 51-57";
+            case 118: return " аяты: 58-64";
+            case 119: return " аяты: 65-70";
+            case 120: return " аяты: 71-76";
+            case 121: return " аяты: 77-82";
+            case 122: return " аяты: 83-89";
+            case 123: return " аяты: 90-95";
+            case 124: return " аяты: 96-103";
+            case 125: return " аяты: 104-108";
+            case 126: return " аяты: 109-113";
+            case 127: return " аяты: 114-120";
+
+            //Сура 6 Аль-Ан'ам - Скот
+            case 128: return " аяты: 1-8";
+            case 129: return " аяты: 9-18";
+            case 130: return " аяты: 19-27";
+            case 131: return " аяты: 28-35";
+            case 132: return " аяты: 36-44";
+            case 133: return " аяты: 45-52";
+            case 134: return " аяты: 53-59";
+            case 135: return " аяты: 60-68";
+            case 136: return " аяты: 69-73";
+            case 137: return " аяты: 74-81";
+            case 138: return " аяты: 82-90";
+            case 139: return " аяты: 91-94";
+            case 140: return " аяты: 95-101";
+            case 141: return " аяты: 102-110";
+            case 142: return " аяты: 111-118";
+            case 143: return " аяты: 119-124";
+            case 144: return " аяты: 125-131";
+            case 145: return " аяты: 132-137";
+            case 146: return " аяты: 138-142";
+            case 147: return " аяты: 143-146";
+            case 148: return " аяты: 147-151";
+            case 149: return " аяты: 152-157";
+            case 150: return " аяты: 158-165";
+
+            //Сура 7 Аль-А'раф - Преграды
+            case 151: return " аяты: 1-11";
+            case 152: return " аяты: 12-22";
+            case 153: return " аяты: 23-30";
+            case 154: return " аяты: 31-37";
+            case 155: return " аяты: 38-43";
+            case 156: return " аяты: 44-51";
+            case 157: return " аяты: 52-57";
+            case 158: return " аяты: 58-67";
+            case 159: return " аяты: 68-73";
+            case 160: return " аяты: 74-81";
+            case 161: return " аяты: 82-87";
+            case 162: return " аяты: 88-95";
+            case 163: return " аяты: 96-104";
+            case 164: return " аяты: 105-120";
+            case 165: return " аяты: 121-130";
+            case 166: return " аяты: 131-137";
+            case 167: return " аяты: 138-143";
+            case 168: return " аяты: 144-149";
+            case 169: return " аяты: 150-155";
+            case 170: return " аяты: 156-159";
+            case 171: return " аяты: 160-163";
+            case 172: return " аяты: 164-170";
+            case 173: return " аяты: 171-178";
+            case 174: return " аяты: 179-187";
+            case 175: return " аяты: 188-195";
+            case 176: return " аяты: 196-206, Саджда-Тилява после 206-го аята";
+
+            // Сура 8 Аль-Анфаль - Трофеи
+            case 177: return " аяты: 1-8";
+            case 178: return " аяты: 9-16";
+            case 179: return " аяты: 17-25";
+            case 180: return " аяты: 26-33";
+            case 181: return " аяты: 34-40";
+            case 182: return " аяты: 41-45";
+            case 183: return " аяты: 46-52";
+            case 184: return " аяты: 53-61";
+            case 185: return " аяты: 62-69";
+            case 186: return " аяты: 70-75";
+
+            // Сура 9 Ат-Тауба - Покаяние
+            case 187: return " аяты: 1-6";
+            case 188: return " аяты: 7-13";
+            case 189: return " аяты: 14-20";
+            case 190: return " аяты: 21-26";
+            case 191: return " аяты: 27-31";
+            case 192: return " аяты: 32-36";
+            case 193: return " аяты: 37-40";
+            case 194: return " аяты: 41-47";
+            case 195: return " аяты: 48-53";
+            case 196: return " аяты: 54-61";
+            case 197: return " аяты: 62-68";
+            case 198: return " аяты: 69-72";
+            case 199: return " аяты: 73-79";
+            case 200: return " аяты: 80-86";
+            case 201: return " аяты: 87-93";
+            case 202: return " аяты: 94-99";
+            case 203: return " аяты: 100-106";
+            case 204: return " аяты: 107-111";
+            case 205: return " аяты: 112-117";
+            case 206: return " аяты: 118-122";
+            case 207: return " аяты: 123-129";
+
+            //Сура 10 Юнус - Пророк Юнус, мир ему
+            case 208: return " аяты: 1-6";
+            case 209: return " аяты: 7-14";
+            case 210: return " аяты: 15-20";
+            case 211: return " аяты: 21-25";
+            case 212: return " аяты: 26-33";
+            case 213: return " аяты: 34-42";
+            case 214: return " аяты: 43-53";
+            case 215: return " аяты: 54-61";
+            case 216: return " аяты: 62-70";
+            case 217: return " аяты: 71-78";
+            case 218: return " аяты: 79-88";
+            case 219: return " аяты: 89-97";
+            case 220: return " аяты: 98-106";
+
+            case 221: return "";
+
+            // Сура 11 Худ - Пророк Худ
+            case 222: return " аяты: 6-12";
+            case 223: return " аяты: 13-19";
+            case 224: return " аяты: 20-28";
+            case 225: return " аяты: 29-37";
+            case 226: return " аяты: 38-45";
+            case 227: return " аяты: 46-53";
+            case 228: return " аяты: 54-62";
+            case 229: return " аяты: 63-71";
+            case 230: return " аяты: 72-81";
+            case 231: return " аяты: 82-88";
+            case 232: return " аяты: 89-97";
+            case 233: return " аяты: 98-108";
+            case 234: return " аяты: 109-117";
+
+            case 235: return "";
+
+            // Сура 12 Юсуф - Пророк Юсуф, мир ему
+            case 236: return " аяты: 5-14";
+            case 237: return " аяты: 15-22";
+            case 238: return " аяты: 23-30";
+            case 239: return " аяты: 31-37";
+            case 240: return " аяты: 38-43";
+            case 241: return " аяты: 44-52";
+            case 242: return " аяты: 53-63";
+            case 243: return " аяты: 64-69";
+            case 244: return " аяты: 70-78";
+            case 245: return " аяты: 79-86";
+            case 246: return " аяты: 87-95";
+            case 247: return " аяты: 96-103";
+            case 248: return " аяты: 104-111";
+
+            // Сура 13 Ар-Рад - Гром
+            case 249: return " аяты: 1-5";
+            case 250: return " аяты: 6-13";
+            case 251: return " аяты: 14-18, Саджда-Тилява после 15-го аята";
+            case 252: return " аяты: 19-28";
+            case 253: return " аяты: 29-34";
+            case 254: return " аяты: 35-42";
+
+            case 255: return "";
+
+            // Сура 14 Ибрахим - Пророк Ибрахим, мир ему
+            case 256: return " аяты: 6-10";
+            case 257: return " аяты: 11-18";
+            case 258: return " аяты: 19-24";
+            case 259: return " аяты: 25-33";
+            case 260: return " аяты: 34-42";
+            case 261: return " аяты: 43-52";
+
+            // Сура 15 Аль-Хиджр - Каменное плато
+            case 262: return " аяты: 1-15";
+            case 263: return " аяты: 16-31";
+            case 264: return " аяты: 32-51";
+            case 265: return " аяты: 52-70";
+            case 266: return " аяты: 71-90";
+
+            case 267: return "";
+
+            // Сура 16 Ан-Нахль - Пчелы
+            case 268: return " аяты: 7-14";
+            case 269: return " аяты: 15-26";
+            case 270: return " аяты: 27-34";
+            case 271: return " аяты: 35-42";
+            case 272: return " аяты: 43-54, Саджда-Тилява после 50-го аята";
+            case 273: return " аяты: 55-64";
+            case 274: return " аяты: 65-72";
+            case 275: return " аяты: 73-79";
+            case 276: return " аяты: 80-87";
+            case 277: return " аяты: 88-93";
+            case 278: return " аяты: 94-102";
+            case 279: return " аяты: 103-110";
+            case 280: return " аяты: 111-118";
+            case 281: return " аяты: 119-128";
+
+            // Сура 17 Аль-Исра - Ночной перенос
+            case 282: return " аяты: 1-7";
+            case 283: return " аяты: 8-17";
+            case 284: return " аяты: 18-27";
+            case 285: return " аяты: 28-38";
+            case 286: return " аяты: 39-49";
+            case 287: return " аяты: 50-58";
+            case 288: return " аяты: 59-66";
+            case 289: return " аяты: 67-75";
+            case 290: return " аяты: 76-86";
+            case 291: return " аяты: 87-96";
+            case 292: return " аяты: 97-104";
+
+            case 293: return "";
+
+            // Сура 18 Аль-Кяхф - Пещера
+            case 294: return " аяты: 5-15";
+            case 295: return " аяты: 16-20";
+            case 296: return " аяты: 21-27";
+            case 297: return " аяты: 28-34";
+            case 298: return " аяты: 35-45";
+            case 299: return " аяты: 46-53";
+            case 300: return " аяты: 54-61";
+            case 301: return " аяты: 62-74";
+            case 302: return " аяты: 75-83";
+            case 303: return " аяты: 84-97";
+            case 304: return " аяты: 98-110";
+
+            // Сура 19 Марьям
+            case 305: return " аяты: 1-11";
+            case 306: return " аяты: 12-25";
+            case 307: return " аяты: 26-38";
+            case 308: return " аяты: 39-51";
+            case 309: return " аяты: 52-64, Саджда-Тилява после 58-го аята";
+            case 310: return " аяты: 65-76";
+            case 311: return " аяты: 77-95";
+
+            case 312: return "";
+
+            // Сура 20 Та Ха
+            case 313: return " аяты: 13-37";
+            case 314: return " аяты: 38-51";
+            case 315: return " аяты: 52-64";
+            case 316: return " аяты: 65-76";
+            case 317: return " аяты: 77-87";
+            case 318: return " аяты: 88-98";
+            case 319: return " аяты: 99-113";
+            case 320: return " аяты: 114-125";
+            case 321: return " аяты: 126-135";
+
+            // Сура 21 Аль-Анбия - Пророки
+            case 322: return " аяты: 1-10";
+            case 323: return " аяты: 11-24";
+            case 324: return " аяты: 25-35";
+            case 325: return " аяты: 36-44";
+            case 326: return " аяты: 45-57";
+            case 327: return " аяты: 58-72";
+            case 328: return " аяты: 73-81";
+            case 329: return " аяты: 82-90";
+            case 330: return " аяты: 91-101";
+            case 331: return " аяты: 102-112";
+
+            // Сура 22 Аль-Хадж
+            case 332: return " аяты: 1-5";
+            case 333: return " аяты: 6-15";
+            case 334: return " аяты: 16-23, Саджда-Тилява после 18-го аята";
+            case 335: return " аяты: 24-30";
+            case 336: return " аяты: 31-38";
+            case 337: return " аяты: 39-46";
+            case 338: return " аяты: 47-55";
+            case 339: return " аяты: 56-64";
+            case 340: return " аяты: 65-72";
+            case 341: return " аяты: 73-78, Саджда-Тилява после 77-го аята";
+
+            // Сура 23 Аль-Му'минун - Верующие
+            case 342: return " аяты: 1-17";
+            case 343: return " аяты: 18-27";
+            case 344: return " аяты: 28-42";
+            case 345: return " аяты: 43-59";
+            case 346: return " аяты: 60-74";
+            case 347: return " аяты: 75-89";
+            case 348: return " аяты: 90-104";
+            case 349: return " аяты: 105-118";
+
+            // Сура 24 Ан-Нур - Свет
+            case 350: return " аяты: 1-10";
+            case 351: return " аяты: 11-20";
+            case 352: return " аяты: 21-27";
+            case 353: return " аяты: 28-31";
+            case 354: return " аяты: 32-36";
+            case 355: return " аяты: 37-43";
+            case 356: return " аяты: 44-53";
+            case 357: return " аяты: 54-58";
+            case 358: return " аяты: 59-61";
+
+            case 359: return "";
+
+            // Сура 25 Аль-Фуркан - Различение
+            case 360: return " аяты: 3-11";
+            case 361: return " аяты: 12-20";
+            case 362: return " аяты: 21-32";
+            case 363: return " аяты: 33-43";
+            case 364: return " аяты: 44-55";
+            case 365: return " аяты: 56-67, Саджда-Тилява после 60-го аята";
+            case 366: return " аяты: 68-77";
+
+            // Сура 26 Аш-Шуара - Поэты
+            case 367: return " аяты: 1-19";
+            case 368: return " аяты: 20-39";
+            case 369: return " аяты: 40-60";
+            case 370: return " аяты: 61-83";
+            case 371: return " аяты: 84-111";
+            case 372: return " аяты: 112-136";
+            case 373: return " аяты: 137-159";
+            case 374: return " аяты: 160-183";
+            case 375: return " аяты: 184-206";
+            case 376: return " аяты: 207-227";
+
+            // Сура 27 Ан-Намль - Муравьи
+            case 377: return " аяты: 1-13";
+            case 378: return " аяты: 14-22";
+            case 379: return " аяты: 23-35, Саджда-Тилява после 26-го аята";
+            case 380: return " аяты: 36-44";
+            case 381: return " аяты: 45-55";
+            case 382: return " аяты: 56-63";
+            case 383: return " аяты: 64-76";
+            case 384: return " аяты: 77-88";
+
+            case 385: return "";
+
+            // Сура 28 Аль-Касас - Рассказы
+            case 386: return " аяты: 6-13";
+            case 387: return " аяты: 14-21";
+            case 388: return " аяты: 22-28";
+            case 389: return " аяты: 29-35";
+            case 390: return " аяты: 36-43";
+            case 391: return " аяты: 44-50";
+            case 392: return " аяты: 51-59";
+            case 393: return " аяты: 60-70";
+            case 394: return " аяты: 71-77";
+            case 395: return " аяты: 78-84";
+
+            case 396: return "";
+
+            // Сура 29 Аль-Анкабут - Паук
+            case 397: return " аяты: 7-14";
+            case 398: return " аяты: 15-23";
+            case 399: return " аяты: 24-30";
+            case 400: return " аяты: 31-38";
+            case 401: return " аяты: 39-45";
+            case 402: return " аяты: 46-52";
+            case 403: return " аяты: 53-63";
+
+            case 404: return "";
+
+            // Сура 30 Ар-Рум - Римляне
+            case 405: return " аяты: 6-15";
+            case 406: return " аяты: 16-24";
+            case 407: return " аяты: 25-32";
+            case 408: return " аяты: 33-41";
+            case 409: return " аяты: 42-50";
+            case 410: return " аяты: 51-60";
+
+            // Сура 31 Лукман
+            case 411: return " аяты: 1-11";
+            case 412: return " аяты: 12-19";
+            case 413: return " аяты: 20-28";
+            case 414: return " аяты: 29-34";
+
+            // Сура 32 Ас-Саджда - Земной поклон
+            case 415: return " аяты: 1-11";
+            case 416: return " аяты: 12-20, Саджда-Тилява после 15-го аята";
+            case 417: return " аяты: 21-30";
+
+            // Сура 33 Аль-Ахзаб - Союзники
+            case 418: return " аяты: 1-6";
+            case 419: return " аяты: 7-15";
+            case 420: return " аяты: 16-22";
+            case 421: return " аяты: 23-30";
+            case 422: return " аяты: 31-35";
+            case 423: return " аяты: 36-43";
+            case 424: return " аяты: 44-50";
+            case 425: return " аяты: 51-54";
+            case 426: return " аяты: 55-62";
+            case 427: return " аяты: 63-73";
+
+            // Сура 34 Саба - Сабейцы
+            case 428: return " аяты: 1-7";
+            case 429: return " аяты: 8-14";
+            case 430: return " аяты: 15-22";
+            case 431: return " аяты: 23-31";
+            case 432: return " аяты: 32-39";
+            case 433: return " аяты: 40-48";
+
+            case 434: return "";
+
+            // Сура 35 Фатыр - Творец
+            case 435: return " аяты: 4-11";
+            case 436: return " аяты: 12-18";
+            case 437: return " аяты: 19-30";
+            case 438: return " аяты: 31-38";
+            case 439: return " аяты: 39-44";
+
+            case 440: return "";
+
+            // Сура 36 Йа Син
+            case 441: return " аяты: 13-27";
+            case 442: return " аяты: 28-40";
+            case 443: return " аяты: 41-54";
+            case 444: return " аяты: 55-70";
+            case 445: return " аяты: 71-83";
+
+            //Сура 37 Ас-Саффат - Выстраивающиеся в ряды
+            case 446: return " аяты: 1-24";
+            case 447: return " аяты: 25-51";
+            case 448: return " аяты: 52-76";
+            case 449: return " аяты: 77-102";
+            case 450: return " аяты: 103-126";
+            case 451: return " аяты: 127-153";
+            case 452: return " аяты: 154-182";
+
+            //Сура 38 Сад - буква Сад
+            case 453: return " аяты: 1-16";
+            case 454: return " аяты: 17-26";
+            case 455: return " аяты: 18-42";
+            case 456: return " аяты: 43-61";
+            case 457: return " аяты: 62-83";
+
+            case 458: return "";
+
+            // Сура 39 - Аз-Зумар - Толпы
+            case 459: return " аяты: 6-10";
+            case 460: return " аяты: 11-21";
+            case 461: return " аяты: 22-31";
+            case 462: return " аяты: 32-40";
+            case 463: return " аяты: 41-47";
+            case 464: return " аяты: 48-56";
+            case 465: return " аяты: 57-67";
+            case 466: return " аяты: 68-74";
+
+            case 467: return "";
+
+            // Сура 40 - Аль-Гафир - Прощающий
+            case 468: return " аяты: 8-16";
+            case 469: return " аяты: 17-25";
+            case 470: return " аяты: 26-33";
+            case 471: return " аяты: 34-40";
+            case 472: return " аяты: 41-49";
+            case 473: return " аяты: 50-58";
+            case 474: return " аяты: 59-66";
+            case 475: return " аяты: 67-77";
+            case 476: return " аяты: 78-85";
+
+            // Сура 41 Фуссылят - Разъяснены
+            case 477: return " аяты: 1-11";
+            case 478: return " аяты: 12-20";
+            case 479: return " аяты: 21-29";
+            case 480: return " аяты: 30-38, Саджда-Тилява после 38-го аята";
+            case 481: return " аяты: 39-46";
+            case 482: return " аяты: 47-54";
+
+            // Сура 42 Аш-Шура - Совет
+            case 483: return " аяты: 1-10";
+            case 484: return " аяты: 11-15";
+            case 485: return " аяты: 16-22";
+            case 486: return " аяты: 23-31";
+            case 487: return " аяты: 32-44";
+            case 488: return " аяты: 45-51";
+
+            case 489: return "";
+
+            // Сура 43 Аз-Зухруф - Украшения
+            case 490: return " аяты: 11-22";
+            case 491: return " аяты: 23-33";
+            case 492: return " аяты: 34-47";
+            case 493: return " аяты: 48-60";
+            case 494: return " аяты: 61-73"; //TODO
+            case 495: return " аяты: 74-89";
+
+            //Сура 44 - Ад-Духан - Дым
+            case 496: return " аяты: 1-18";
+            case 497: return " аяты: 19-39";
+            case 498: return " аяты: 40-59";
+
+            //Сура 45 - Аль-Джасия - Коленопреклоненные
+            case 499: return " аяты: 1-13";
+            case 500: return " аяты: 14-22";
+            case 501: return " аяты: 23-32";
+
+            case 502: return "";
+
+            // Сура 46 - Аль-Ахкаф - Пески
+            case 503: return " аяты: 6-14";
+            case 504: return " аяты: 15-20";
+            case 505: return " аяты: 21-28";
+            case 506: return " аяты: 29-35";
+
+            // Сура 47 - Мухаммад - Пророк Мухаммад, мир ему и благословение Аллаха
+            case 507: return " аяты: 1-11";
+            case 508: return " аяты: 12-19";
+            case 509: return " аяты: 20-29";
+            case 510: return " аяты: 30-38";
+
+            // Сура 48 - Аль-Фатх - Победа
+            case 511: return " аяты: 1-9";
+            case 512: return " аяты: 10-15";
+            case 513: return " аяты: 16-23";
+            case 514: return " аяты: 24-28";
+
+            case 515: return "";
+
+            // Сура 49 - Аль-Худжурат - Комнаты
+            case 516: return " аяты: 5-11";
+            case 517: return " аяты: 12-18";
+
+            // Сура 50 - Каф - буква Каф
+            case 518: return " аяты: 1-15";
+            case 519: return " аяты: 16-35";
+            case 520: return "";
+
+            // Сура 51 Аз-Зарият
+            case 521: return " аяты: 7-30";
+            case 522: return " аяты: 31-51";
+            case 523: return "";
+
+            // Сура 52 - Ат-Тур - Гора
+            case 524: return " аяты: 15-31";
+            case 525: return " аяты: 32-49";
+
+            // Сура 53 Ан-Наджм - Звезда
+            case 526: return " аяты: 1-26";
+            case 527: return " аяты: 27-44";
+
+            case 528: return "";
+
+            // Сура 54
+            case 529: return " аяты: 7-27";
+            case 530: return " аяты: 28-49";
+
+            case 531: return "";
+
+            // Сура 55 - Ар-Рахман - Милостивый
+            case 532: return " аяты: 17-40";
+            case 533: return " аяты: 41-67";
+
+            case 534: return "";
+
+            // Сура 56 - Аль-Вакиа - Неотвратимое событие
+            case 535: return " аяты: 17-50";
+            case 536: return " аяты: 51-76";
+
+            case 537: return "";
+
+            // Сура 57 - Аль-Хадид - Железо
+            case 538: return " аяты: 4-11";
+            case 539: return " аяты: 12-18";
+            case 540: return " аяты: 19-24";
+            case 541: return " аяты: 25-29";
+
+            // Сура 58 - Аль-Муджадаля - Препирающаяся
+            case 542: return " аяты: 1-6";
+            case 543: return " аяты: 7-11";
+            case 544: return " аяты: 12-21";
+
+            case 545: return "";
+
+            // Сура 59 - Аль-Хашр - Сбор
+            case 546: return " аяты: 4-9";
+            case 547: return " аяты: 10-16";
+            case 548: return " аяты: 17-24";
+
+            // Сура 60 - Аль-Мумтахина - Испытуемая
+            case 549: return " аяты: 1-5";
+            case 550: return " аяты: 6-11";
+
+            case 551: return "";
+
+            // Сура 61 - Ас-Саф - Ряд
+            case 552: return " аяты: 6-14";
+
+            // Сура 62 - Аль-Джуму'а - Пятница
+            case 553: return " аяты: 1-8";
+
+            case 554: return "";
+
+            // Сура 63 - Аль-Мунаффикун - Лицемеры
+            case 555: return " аяты: 5-11";
+
+            // Сура 64 - Ат-Тагабун - Раскрытие самообмана
+            case 556: return " аяты: 1-9";
+            case 557: return " аяты: 10-18";
+
+            // Сура 65 - Ат-Таляк - развод
+            case 558: return " аяты: 1-5";
+            case 559: return " аяты: 6-12";
+
+            // Сура 66 - Ат-Тахрим - Запрещение
+            case 560: return " аяты: 1-7";
+            case 561: return " аяты: 8-12";
+
+            // Сура 67 - Аль-Мульк - Власть
+            case 562: return " аяты: 1-12";
+            case 563: return " аяты: 13-26";
+
+            case 564: return "";
+
+            // Сура 68 - Аль-Калям - Письменная трость
+            case 565: return " аяты: 16-42";
+
+            case 566: return "";
+
+            // Сура 69 - Аль-Хакка - Неизбежное
+            case 567: return " аяты: 9-34";
+
+            case 568: return "";
+
+            // Сура 70 - Аль-Ма'аридж - Ступени
+            case 569: return " аяты: 11-39";
+
+            case 570: return "";
+
+            // Сура 71 - Нух - Пророк Нух, мир ему
+            case 571: return " аяты: 11-28";
+
+            // Сура 72 - Аль-Джинн - Джинны
+            case 572: return " аяты: 1-13";
+            case 573: return " аяты: 14-28";
+
+            // Сура 73 - Аль-Музаммиль - Завернувшийся
+            case 574: return " аяты: 1-19";
+
+            case 575: return "";
+
+            // Сура 74 - Аль-Мудассир - Закутавшийся
+            case 576: return " аяты: 18-47";
+
+            case 577: return "";
+
+            // Сура 75 - Аль-Кыяма - Воскресение
+            case 578: return "";
+
+            // Сура 76 - Аль-Инсан - Человек
+            case 579: return " аяты: 6-25";
+
+            case 580: return "";
+
+            // Сура 77 - Аль-Мурсалят - Посланные
+            case 581: return " аяты: 20-40";
+
+            // Сура 78 - Ан-Наба - Весть
+            case 582: return " аяты: 1-30";
+
+            case 583: return "";
+
+            // Сура 79 - Ан-Назиат - Вырывающие
+            case 584: return " аяты: 16-46";
+
+            // Сура 80 - Абаса - Нахмурившийся
+            case 585: return " аяты: 1-42";
+
+            // Сура 81 - Ат-Таквир - Погружение во мрак
+            case 586: return " аяты: 1-29";
+
+            // Сура 82 - Аль-Инфитар
+            case 587: return "";
+            case 588: return "";
+            case 589: return "";
+            case 590: return "";
+            case 591: return "";
+            case 592: return "";
+            case 593: return "";
+            case 594: return "";
+            case 595: return "";
+            case 596: return "";
+            case 597: return "";
+            case 598: return "";
+            case 599: return "";
+            case 600: return "";
+            case 601: return "";
+            case 602: return "";
+            case 603: return "";
+            case 604: return "";
+            default: return "";
+        }
+    }
+
+    public String getSuraTitle(int page) {
+        switch (page) {
+            case 1:
+                return "Сура 1. Аль-Фатиха - Открывающая";
+            case 2: case 3: case 4: case 5: case 6:
+            case 7: case 8: case 9: case 10: case 11:
+            case 12: case 13: case 14: case 15: case 16:
+            case 17: case 18: case 19: case 20: case 21:
+            case 22: case 23: case 24: case 25: case 26:
+            case 27: case 28: case 29: case 30: case 31:
+            case 32: case 33: case 34: case 35: case 36:
+            case 37: case 38: case 39: case 40: case 41:
+            case 42: case 43: case 44: case 45: case 46:
+            case 47: case 48: case 49:
+                return "Сура 2. Аль-Бакара - Корова";
+            case 50: case 51: case 52: case 53: case 54: case 55:
+            case 56: case 57: case 58: case 59: case 60:
+            case 61: case 62: case 63: case 64: case 65:
+            case 66: case 67: case 68: case 69: case 70:
+            case 71: case 72: case 73: case 74: case 75:
+            case 76:
+                return "Сура 3. Аль-Имран - Семейство Имрана";
+            case 77: case 78: case 79: case 80: case 81:
+            case 82: case 83: case 84: case 85: case 86:
+            case 87: case 88: case 89: case 90: case 91:
+            case 92: case 93: case 94: case 95: case 96:
+            case 97: case 98: case 99: case 100: case 101:
+            case 102: case 103: case 104: case 105:
+                return "Сура 4. Ан-Ниса - Женщины";
+            case 106: return "Сура 4. Ан-Ниса - Женщины, аят 176, \nСура 5. Аль-Маида - Трапеза, аяты 1-2";
+            case 107: case 108:
+            case 109: case 110: case 111: case 112: case 113:
+            case 114: case 115: case 116: case 117: case 118:
+            case 119: case 120: case 121: case 122: case 123: case 124:
+            case 125: case 126: case 127:
+                return "Сура 5. Аль-Маида - Трапеза";
+            case 128: case 129: case 130: case 131: case 132:
+            case 133: case 134: case 135: case 136: case 137:
+            case 138: case 139: case 140: case 141: case 142:
+            case 143: case 144: case 145: case 146: case 147:
+            case 148: case 149: case 150:
+                return "Сура 6 Аль-Анам - Скот";
+            case 151: case 152: case 153: case 154:
+            case 155: case 156: case 157: case 158: case 159:
+            case 160: case 161: case 162: case 163: case 164:
+            case 165: case 166: case 167: case 168: case 169:
+            case 170: case 171: case 172: case 173: case 174:
+            case 175: case 176:
+                return "Сура 7. Аль-Араф - Преграды";
+            case 177: case 178: case 179: case 180: case 181:
+            case 182: case 183: case 184: case 185: case 186:
+                return "Сура 8. Аль-Анфаль - Добыча";
+            case 187: case 188: case 189: case 190: case 191:
+            case 192: case 193: case 194: case 195: case 196:
+            case 197: case 198: case 199: case 200: case 201:
+            case 202: case 203: case 204: case 205: case 206:
+            case 207:
+                return "Сура 9. Ат-Тауба - Покаяние";
+            case 208: case 209: case 210: case 211:
+            case 212: case 213: case 214: case 215: case 216:
+            case 217: case 218: case 219: case 220:
+                return "Сура 10. Юнус - Пророк Юнус, мир ему";
+            case 221: return "Сура 10. Юнус - Пророк Юнус, мир ему, аяты 107-109, \nСура 11. Худ - Пророк Худ, мир ему, аяты 1-5";
+            case 222: case 223: case 224:
+            case 225: case 226: case 227: case 228:
+            case 229: case 230: case 231: case 232:
+            case 233: case 234:
+                return "Сура 11. Худ - Пророк Худ, мир ему";
+            case 235: return "Сура 11. Худ - Пророк Худ, мир ему, аяты 118-123, \nСура 12. Йусуф - Пророк Йусуф, мир ему, аяты 1-4";
+            case 236: case 237: case 238:
+            case 239: case 240: case 241: case 242:
+            case 243: case 244: case 245: case 246:
+            case 247: case 248:
+                return "Сура 12. Йусуф - Пророк Йусуф, мир ему";
+            case 249: case 250: case 251: case 252:
+            case 253: case 254:
+                return "Сура 13. Ар-Ра'д - Гром";
+            case 255: return "Сура 13. Ар-Ра'д - Гром, аят 43, \nСура 14. Ибрахим - Пророк Ибрахим, мир ему, аяты 1-5";
+            case 256: case 257: case 258:
+            case 259: case 260: case 261:
+                return "Сура 14. Ибрахим - Пророк Ибрахим, мир ему";
+            case 262:
+            case 263:
+            case 264:
+            case 265:
+            case 266:
+                return "Сура 15. Аль-Хиджр - Каменное плато";
+            case 267: return "Сура 15. Аль-Хиджр - Каменное плато, аяты 91-99, \nСура 16. Ан-Нахль - Пчелы, аяты 1-6";
+            case 268:
+            case 269:
+            case 270:
+            case 271:
+            case 272:
+            case 273:
+            case 274:
+            case 275:
+            case 276:
+            case 277:
+            case 278:
+            case 279:
+            case 280:
+            case 281:
+                return "Сура 16. Ан-Нахль - Пчелы";
+            case 282:
+            case 283:
+            case 284:
+            case 285:
+            case 286:
+            case 287:
+            case 288:
+            case 289:
+            case 290:
+            case 291:
+            case 292:
+                return "Сура 17. Аль-Исра - Ночной перенос";
+            case 293: return "Сура 17. Аль-Исра - Ночной перенос, аяты 105-111, Саджда-Тилява после 109-го аята,\nСура 18. Аль-Кахф - Пещера, аяты 1-4";
+            case 294:
+            case 295:
+            case 296:
+            case 297:
+            case 298:
+            case 299:
+            case 300:
+            case 301:
+            case 302:
+            case 303:
+            case 304:
+                return "Сура 18. Аль-Кахф - Пещера";
+            case 305:
+            case 306:
+            case 307:
+            case 308:
+            case 309:
+            case 310:
+            case 311:
+                return "Сура 19. Марьям - Марьям (Мария)";
+            case 312: return "Сура 19. Марьям - Марьям (Мария), аяты 96-98, \nСура 20. Та-Ха - Та-Ха, аяты 1-12";
+            case 313:
+            case 314:
+            case 315:
+            case 316:
+            case 317:
+            case 318:
+            case 319:
+            case 320:
+            case 321:
+                return "Сура 20. Та-Ха - Та-Ха";
+            case 322:
+            case 323:
+            case 324:
+            case 325:
+            case 326:
+            case 327:
+            case 328:
+            case 329:
+            case 330:
+            case 331:
+                return "Сура 21. Аль-Анбия - Пророки";
+            case 332:
+            case 333:
+            case 334:
+            case 335:
+            case 336:
+            case 337:
+            case 338:
+            case 339:
+            case 340:
+            case 341:
+                return "Сура 22. Аль-Хадж - Паломничество";
+            case 342:
+            case 343:
+            case 344:
+            case 345:
+            case 346:
+            case 347:
+            case 348:
+            case 349:
+                return "Сура 23. Аль-Му'минун - Верующие";
+            case 350:
+            case 351:
+            case 352:
+            case 353:
+            case 354:
+            case 355:
+            case 356:
+            case 357:
+            case 358:
+                return "Сура 24. Ан-Нур - Свет";
+            case 359: return "Сура 24. Ан-Нур - Свет, аяты 62-64, \nСура 25. Аль-Фуркан - Различение, аяты 1-2";
+            case 360:
+            case 361:
+            case 362:
+            case 363:
+            case 364:
+            case 365:
+            case 366:
+                return "Сура 25. Аль-Фуркан - Различение";
+            case 367:
+            case 368:
+            case 369:
+            case 370:
+            case 371:
+            case 372:
+            case 373:
+            case 374:
+            case 375:
+            case 376:
+                return "Сура 26. Аш-Шуара - Поэты";
+            case 377:
+            case 378:
+            case 379:
+            case 380:
+            case 381:
+            case 382:
+            case 383:
+            case 384:
+                return "Сура 27. Ан-Намль - Муравьи";
+            case 385: return "Сура 27. Ан-Намль - Муравьи, аяты 89-93, \nСура 28. Аль-Касас - Рассказы, аяты 1-5";
+            case 386:
+            case 387:
+            case 388:
+            case 389:
+            case 390:
+            case 391:
+            case 392:
+            case 393:
+            case 394:
+            case 395:
+                return "Сура 28. Аль-Касас - Рассказы";
+            case 396: return "Сура 28. Аль-Касас - Рассказы, аяты 85-88, \nСура 29. Аль-Анкабут - Паук, аяты 1-6";
+            case 397:
+            case 398:
+            case 399:
+            case 400:
+            case 401:
+            case 402:
+            case 403:
+                return "Сура 29. Аль-Анкабут - Паук";
+            case 404: return "Сура 29. Аль-Анкабут - Паук, аяты 64-69, \nСура 30. Ар-Рум - Римляне, аяты 1-5";
+            case 405:
+            case 406:
+            case 407:
+            case 408:
+            case 409:
+            case 410:
+                return "Сура 30. Ар-Рум - Римляне";
+            case 411:
+            case 412:
+            case 413:
+            case 414:
+                return "Сура 31. Лукман - Лукман";
+            case 415:
+            case 416:
+            case 417:
+                return "Сура 32. Ас-Саджда - Поклон";
+            case 418:
+            case 419:
+            case 420:
+            case 421:
+            case 422:
+            case 423:
+            case 424:
+            case 425:
+            case 426:
+            case 427:
+                return "Сура 33. Аль-Ахзаб - Союзники";
+            case 428:
+            case 429:
+            case 430:
+            case 431:
+            case 432:
+            case 433:
+                return "Сура 34. Саба - Сабейцы";
+            case 434: return "Сура 34. Саба - Сабейцы, аяты 49-54, \nСура 35. Фатыр - Творец, аяты 1-3";
+            case 435:
+            case 436:
+            case 437:
+            case 438:
+            case 439:
+                return "Сура 35. Фатыр - Творец";
+            case 440: return "Сура 35. Фатыр - Творец, аят 45, \nСура 36. Йа Син - Йа Син, аяты 1-12";
+            case 441:
+            case 442:
+            case 443:
+            case 444:
+            case 445:
+                return "Сура 36. Йа Син - Йа Син";
+            case 446:
+            case 447:
+            case 448:
+            case 449:
+            case 450:
+            case 451:
+            case 452:
+                return "Сура 37. Ас-Саффат - Выстраивающиеся в ряды";
+            case 453:
+            case 454:
+            case 455:
+            case 456:
+            case 457:
+                return "Сура 38. Сад - Буква Сад";
+            case 458: return "Сура 38. Сад - Буква Сад, аяты 84-88, \nСура 39. Аз-Зумар - Толпы, аяты 1-5";
+            case 459:
+            case 460:
+            case 461:
+            case 462:
+            case 463:
+            case 464:
+            case 465:
+            case 466:
+                return "Сура 39. Аз-Зумар - Толпы";
+            case 467: return "Сура 39. Аз-Зумар - Толпы, аят 75, \nСура 40. Гафир - Прощающий, аяты 1-7";
+            case 468:
+            case 469:
+            case 470:
+            case 471:
+            case 472:
+            case 473:
+            case 474:
+            case 475:
+            case 476:
+                return "Сура 40. Гафир - Прощающий";
+            case 477:
+            case 478:
+            case 479:
+            case 480:
+            case 481:
+            case 482:
+                return "Сура 41. Фуссылят - Разъяснены";
+            case 483:
+            case 484:
+            case 485:
+            case 486:
+            case 487:
+            case 488:
+                return "Сура 42. Аш-Шура - Совет";
+            case 489: return "Сура 42. Аш-Шура - Совет, аяты 52-53, \nСура 43. Аз-Зухруф - Украшения, аяты 1-10";
+            case 490:
+            case 491:
+            case 492:
+            case 493:
+            case 494:
+            case 495:
+                return "Сура 43. Аз-Зухруф - Украшения";
+            case 496:
+            case 497:
+            case 498:
+                return "Сура 44. Ад-Духан - Дым";
+            case 499:
+            case 500:
+            case 501:
+                return "Сура 45. Аль-Джасия - Коленопреклоненные";
+            case 502: return "Сура 45. Аль-Джасия - Коленопреклоненные, аяты 33-37, \nСура 46. Аль-Ахкаф - Дюны, аяты 1-5";
+            case 503:
+            case 504:
+            case 505:
+            case 506:
+                return "Сура 46. Аль-Ахкаф - Дюны";
+            case 507:
+            case 508:
+            case 509:
+            case 510:
+                return "Сура 47. Мухаммад - Пророк Мухаммад, мир ему и благословение Всевышнего";
+            case 511:
+            case 512:
+            case 513:
+            case 514:
+                return "Сура 48. Аль-Фатх - Победа";
+            case 515: return "Сура 48. Аль-Фатх - Победа, аят 29, \nСура 49. Аль-Худжурат - Комнаты, аяты 1-4";
+            case 516:
+            case 517:
+                return "Сура 49. Аль-Худжурат - Комнаты";
+            case 518:
+            case 519:
+                return "Сура 50. Каф - Буква Каф";
+            case 520: return "Сура 50. Каф - Буква Каф, аяты 36-45, \nСура 51. Аз-Зарият - Рассеивающие, аяты 1-6";
+            case 521:
+            case 522:
+                return "Сура 51. Аз-Зарият - Рассеивающие";
+            case 523: return "Сура 51. Аз-Зарият - Рассеивающие, аяты 52-60, \nСура 52. Ат-Тур - Гора, аяты 1-14";
+            case 524:
+            case 525:
+                return "Сура 52. Ат-Тур - Гора";
+            case 526:
+            case 527:
+                return "Сура 53. Ан-Наджм - Звезда";
+            case 528: return "Сура 53. Ан-Наджм - Звезда, аяты 45-62, Саджда-Тилява после 62-го аята, \nСура 54. Аль-Камар - Луна, аяты 1-6";
+            case 529:
+            case 530:
+                return "Сура 54. Аль-Камар - Луна";
+            case 531: return "Сура 54. Аль-Камар - Луна, аяты 50-55, \nСура 55. Ар-Рахман - Милостивый, аяты 1-16";
+            case 532:
+            case 533:
+                return "Сура 55. Ар-Рахман - Милостивый";
+            case 534: return "Сура 55. Ар-Рахман - Милостивый, аяты 68-78, \nСура 56. Аль-Вакы'а - Неотвратимое событие - аяты 1-16";
+            case 535:
+            case 536:
+                return "Сура 56. Аль-Вакы'а - Неотвратимое событие";
+            case 537: return "Сура 56. Аль-Вакы'а - Неотвратимое событие, аяты 77-96, \nСура 57. Аль-Хадид - Железо, аяты 1-3";
+            case 538:
+            case 539:
+            case 540:
+            case 541:
+                return "Сура 57. Аль-Хадид - Железо";
+            case 542:
+            case 543:
+            case 544:
+                return "Сура 58. Аль-Муджадала - Препирающаяся";
+            case 545: return "Сура 58. Аль-Муджадала - Препирающаяся, аят 22, \nСура 59. Аль-Хашр - Сбор, аяты 1-3";
+            case 546:
+            case 547:
+            case 548:
+                return "Сура 59. Аль-Хашр - Сбор";
+            case 549:
+            case 550:
+                return "Сура 60. Аль-Мумтахина - Испытуемая";
+            case 551: return "Сура 60. Аль-Мумтахина - Испытуемая, аяты 12-13, \nСура 61. Ас-Сафф - Ряд, аяты 1-5";
+            case 552:
+                return "Сура 61. Ас-Сафф - Ряд";
+            case 553:
+                return "Сура 62. Аль-Джуму'а - Пятница";
+            case 554: return "Сура 62. Аль-Джуму'а - Пятница, аяты 9-11, \nСура 63. Аль-Мунафикун - Лицемеры, аяты 1-4";
+            case 555:
+                return "Сура 63. Аль-Мунафикун - Лицемеры";
+            case 556:
+            case 557:
+                return "Сура 64. Ат-Тагабун - Раскрытие самообмана";
+            case 558:
+            case 559:
+                return "Сура 65. Ат-Талак - Развод";
+            case 560:
+            case 561:
+                return "Сура 66. Ат-Тахрим - Запрещение";
+            case 562:
+            case 563:
+                return "Сура 67. Аль-Мульк - Власть";
+            case 564: return "Сура 67. Аль-Мульк - Власть, аяты 27-30, \nСура 68. Аль-Калям - Письменная трость, аяты 1-15";
+            case 565:
+                return "Сура 68. Аль-Калям - Письменная трость";
+            case 566: return "Сура 68. Аль-Калям - Письменная трость, аяты 43-52, \nСура 69. Аль-Хакка - Неизбежное, аяты 1-8";
+            case 567:
+                return "Сура 69. Аль-Хакка - Неизбежное";
+            case 568: return "Сура 69. Аль-Хакка - Неизбежное, аяты 35-52, \nСура 70. Аль-Ма'аридж - Ступени, аяты 1-10";
+            case 569:
+                return "Сура 70. Аль-Ма'аридж - Ступени";
+            case 570: return "Сура 70. Аль-Ма'аридж - Ступени, аяты 40-44, \nСура 71. Нух - Нух (Ной), аяты 1-10";
+            case 571:
+                return "Сура 71. Нух - Нух (Ной)";
+            case 572:
+            case 573:
+                return "Сура 72. Аль-Джинн - Джинны";
+            case 574:
+                return "Сура 73. Аль-Муззаммиль - Закутавшийся";
+            case 575: return "Сура 73. Аль-Муззаммиль - Закутавшийся, аят 20, \nСура 74. Аль-Муддассир - Завернувшийся, аяты 1-17";
+            case 576:
+                return "Сура 74. Аль-Муддассир - Завернувшийся";
+            case 577: return "Сура 74. Аль-Муддассир - Завернувшийся, аяты 48-56, \nСура 75. Аль-Кыяма - Воскресение, аяты 1-19";
+            case 578: return "Сура 75. Аль-Кыяма - Воскресение, аяты 20-30, \nСура 76. Аль-Инсан - Человек, аяты 1-5";
+            case 579:
+                return "Сура 76. Аль-Инсан - Человек";
+            case 580: return "Сура 76. Аль-Инсан - Человек, 26-31, \nСура 77. Аль-Мурсалят - Посланные, аяты 1-19";
+            case 581:
+                return "Сура 77. Аль-Мурсалят - Посланные";
+            case 582:
+                return "Сура 78. Ан-Наба - Весть";
+            case 583: return "Сура 78. Ан-Наба - Весть, аяты 31-40, \nСура 79. Ан-Назиат - Вырывающие, аяты 1-15";
+            case 584:
+                return "Сура 79. Ан-Назиат - Вырывающие";
+            case 585:
+                return "Сура 80. Абаса - Нахмурившийся";
+            case 586:
+                return "Сура 81. Ат-Таквир - Скручивание";
+            case 587: return "Сура 82. Аль-Инфитар - Раскалывание, аяты 1-19, \n Сура 83. Аль-Мутаффифин - Обвешивающие, аяты 1-6";
+            case 588: return "Сура 83. Аль-Мутаффифин - Обвешивающие, аяты 7-34";
+            case 589: return "Сура 83. Аль-Мутаффифин - Обвешивающие, аят 35, \nСура 84. Аль-Иншикак - Разверзнется, аяты 1-25, Саджда-Тилява после 21-го аята";
+            case 590: return "Сура 85. Аль-Бурудж - Созвездия, аяты 1-22";
+            case 591: return "Сура 86. Ат-Тарик - Ночной путник, аяты 1-17, \n Сура 87. Аль-А'ля - Высочайший, аяты 1-15";
+            case 592: return "Сура 87. Аль-А'ля - Высочайший, аяты 16-19, \nСура 88. Аль-Гашия - Покрывающее, аяты 1-26";
+            case 593: return "Сура 89. Аль-Фаджр - Заря, аяты 1-23";
+            case 594: return "Сура 89. Аль-Фаджр - Заря, аяты 24-30, \nСура 90. Аль-Баляд - Город, аяты 1-20";
+            case 595: return "Сура 91. Аш-Шамс - Солнце, аяты 1-15, \nСура 92. Аль-Ляйль - Ночь, аяты 1-14";
+            case 596: return "Сура 92. Аль-Ляйль - Ночь, аяты 15-21, \nСура 93. Ад-Духа - Утро, аяты 1-11, \n Сура 94. Аш-Шарх - Раскрытие, аяты 1-8";
+            case 597: return "Сура 95. Ат-Тин - Инжир, аяты 1-8, \nСура 96. Аль-'Аляк - Сгусток крови, аяты 1-19, Саджда-Тилява после 19-го аята";
+            case 598: return "Сура 97. Аль-Кадр - Ночь предопределения, аяты 1-5, \nСура 98. Аль-Баййина - Ясное знамение, аяты 1-7";
+            case 599: return "Сура 98. Аль-Баййина - Ясное знамение, аят 8, \nСура 99. Аз-Зальзаля - Землетрясение, аяты 1-8, \nСура 100. Аль-'Адият - Скачущие, аяты 1-9";
+            case 600: return "Сура 100. Аль-'Адият - Скачущие, аяты 10-11, \nСура 101. Аль-Кари'а - Великое бедствие, аяты 1-11, \nСура 102. Ат-Такасур - Страсть к приумножению, аяты 1-8";
+            case 601: return "Сура 103. Аль-'Аср - Предвечернее время, аяты 1-3 \nСура 104. Аль-Хумаза - Хулитель, аяты 1-9, \nСура 105. Аль-Филь - Слон, аяты 1-5";
+            case 602: return "Сура 106. Курайш - Курайшиты, аяты 1-4, \nСура 107. Аль-Ма'ун - Мелочь, аяты 1-7, \nСура 108. Аль-Кяусар - Изобилие, аяты 1-3";
+            case 603: return "Сура 109. Аль-Кяфирун - Неверующие, аяты 1-6, \nСура 110. Ан-Наср - Победа, аяты 1-3, \nСура 111. Аль-Ляхаб - Пальмовые волокна, аяты 1-5";
+            case 604: return "Сура 112. Аль-Ихляс - Искренность, аяты 1-4, \nСура 113. Аль-Фаляк - Рассвет, аяты 1-5, \nСура 114. Ан-Нас - Люди, аяты 1-6";
+
+            default:
+                return "Страница не найдена";
+        }
+    }
+}

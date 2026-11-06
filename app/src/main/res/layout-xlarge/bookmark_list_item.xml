@@ -5,38 +5,51 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="8dp">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/materialCardQuran"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="24dp"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
+        app:cardCornerRadius="32dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
         app:strokeColor="#788968"
+        app:cardElevation="4dp"
         app:cardUseCompatPadding="true">
 
-        <TextView
-            android:id="@+id/bookmarkText"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_marginTop="15dp"
-            android:layout_marginBottom="15dp"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="65dp"
-            android:textSize="18sp" />
+            android:padding="8dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/deleteBookmark"
-            style="@style/Widget.Material3.Button.IconButton"
-            app:iconSize="30dp"
-            android:layout_gravity="right|center"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/baseline_delete_forever_24"/>
+            <TextView
+                android:id="@+id/bookmarkText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toLeftOf="@+id/deleteBookmark"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:layout_marginLeft="24dp"
+                android:layout_marginRight="16dp"
+                android:textSize="22sp"
+                android:lineSpacingExtra="4sp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/deleteBookmark"
+                style="@style/Widget.Material3.Button.IconButton"
+                app:iconSize="36dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginRight="8dp"
+                app:icon="@drawable/baseline_delete_forever_24"/>
+
+        </RelativeLayout>
 
     </com.google.android.material.card.MaterialCardView>
 

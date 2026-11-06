@@ -1,6 +1,222 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/colors_container"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:padding="8dp"
+    android:background="@drawable/popup_background">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Красная закладка -->
+    <LinearLayout
+        android:id="@+id/color_red"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_red"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Черная закладка -->
+    <LinearLayout
+        android:id="@+id/color_black"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_black"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Белая закладка -->
+    <LinearLayout
+        android:id="@+id/color_white"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+
+
+    <!-- Зеленая закладка -->
+    <LinearLayout
+        android:id="@+id/color_green"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_green"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/color_fiol"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_fiol"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/color_pink"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_pink"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Желтая закладка -->
+    <LinearLayout
+        android:id="@+id/color_yellow"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_yellow"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Желтая закладка -->
+    <LinearLayout
+        android:id="@+id/color_orange"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_orange"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/color_bir"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_bir"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Синяя закладка -->
+    <LinearLayout
+        android:id="@+id/color_blue"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bookmark_full_blue"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+
+
+</LinearLayout>
