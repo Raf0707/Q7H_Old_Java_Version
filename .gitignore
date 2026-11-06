@@ -8,3 +8,7 @@ local.properties
 .externalNativeBuild
 .cxx
 .kotlin/
+*.mp3
+*.apk
+/app/release/
+**/build/
